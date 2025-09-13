@@ -1,88 +1,172 @@
-import { Platform, StyleSheet } from "react-native";
+import * as WebBrowser from "expo-web-browser";
+import { useRef, useState } from "react";
+import {
+  Animated,
+  Image,
+  Platform,
+  RefreshControl,
+  StyleSheet,
+  TouchableOpacity,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { HelloWave } from "@/components/hello-wave";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import videos from "@/data";
 import { useThemeColor } from "@/hooks/use-theme-color";
-import { Link } from "expo-router";
-import Animated from "react-native-reanimated";
+
+interface Video {
+  id: string;
+  title: string;
+  img: string;
+  dateTime: Date;
+  channelTitle: string;
+}
 
 export default function HomeScreen() {
   const backgroundColor = useThemeColor({}, "background");
+  const textColor = useThemeColor({}, "text");
+  const insets = useSafeAreaInsets();
+  const [videoList, setVideoList] = useState<Video[]>(videos);
+  const [refreshing, setRefreshing] = useState(false);
 
-  return (
-    <Animated.ScrollView
-      style={{ backgroundColor, flex: 1 }}
-      scrollEventThrottle={16}
+  // Animation values
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  // Card colors for light/dark theme
+  const cardBackgroundColor = useThemeColor(
+    { light: "#f2f2f7", dark: "#1a1a1c" },
+    "background"
+  );
+  const secondaryTextColor = useThemeColor(
+    { light: "#8e8e93", dark: "#8e8e93" },
+    "text"
+  );
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    // Simulate API call
+    setTimeout(() => {
+      console.log("Refreshing videos...");
+      setVideoList([...videos]);
+      setRefreshing(false);
+    }, 1000);
+  };
+
+  const openVideo = (videoId: string) => {
+    const url = `https://www.youtube.com/embed/${videoId}`;
+    WebBrowser.openBrowserAsync(url);
+  };
+
+  // Header animation
+  const headerHeight = scrollY.interpolate({
+    inputRange: [0, 50],
+    outputRange: [0, 44 + insets.top],
+    extrapolate: "clamp",
+  });
+
+  const largeTitleOpacity = scrollY.interpolate({
+    inputRange: [0, 20],
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
+
+  const smallTitleOpacity = scrollY.interpolate({
+    inputRange: [10, 50],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
+
+  const headerBorderWidth = scrollY.interpolate({
+    inputRange: [0, 20],
+    outputRange: [0, StyleSheet.hairlineWidth],
+    extrapolate: "clamp",
+  });
+
+  const renderVideoItem = ({ item }: { item: Video }) => (
+    <TouchableOpacity
+      style={styles.videoItem}
+      onPress={() => openVideo(item.id)}
+      activeOpacity={0.7}
     >
-      <ThemedView style={styles.content}>
-        <ThemedView style={styles.titleContainer}>
-          <ThemedText type="title">Welcome!</ThemedText>
-          <HelloWave />
-        </ThemedView>
-        <ThemedView style={styles.stepContainer}>
-          <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-          <ThemedText>
-            Edit{" "}
-            <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText>{" "}
-            to see changes. Press{" "}
-            <ThemedText type="defaultSemiBold">
-              {Platform.select({
-                ios: "cmd + d",
-                android: "cmd + m",
-                web: "F12",
-              })}
-            </ThemedText>{" "}
-            to open developer tools.
+      <ThemedView style={styles.videoCard}>
+        <Image source={{ uri: item.img }} style={styles.videoImage} />
+        <ThemedView
+          style={[styles.videoInfo, { backgroundColor: cardBackgroundColor }]}
+        >
+          <ThemedText
+            style={[styles.videoTitle, { color: textColor }]}
+            numberOfLines={2}
+          >
+            {item.title}
           </ThemedText>
-        </ThemedView>
-        <ThemedView style={styles.stepContainer}>
-          <Link href="/modal">
-            <Link.Trigger>
-              <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-            </Link.Trigger>
-            <Link.Preview />
-            <Link.Menu>
-              <Link.MenuAction
-                title="Action"
-                icon="cube"
-                onPress={() => alert("Action pressed")}
-              />
-              <Link.MenuAction
-                title="Share"
-                icon="square.and.arrow.up"
-                onPress={() => alert("Share pressed")}
-              />
-              <Link.Menu title="More" icon="ellipsis">
-                <Link.MenuAction
-                  title="Delete"
-                  icon="trash"
-                  destructive
-                  onPress={() => alert("Delete pressed")}
-                />
-              </Link.Menu>
-            </Link.Menu>
-          </Link>
-
-          <ThemedText>
-            {`Tap the Explore tab to learn more about what's included in this starter app.`}
-          </ThemedText>
-        </ThemedView>
-        <ThemedView style={styles.stepContainer}>
-          <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-          <ThemedText>
-            {`When you're ready, run `}
-            <ThemedText type="defaultSemiBold">
-              npm run reset-project
-            </ThemedText>{" "}
-            to get a fresh <ThemedText type="defaultSemiBold">app</ThemedText>{" "}
-            directory. This will move the current{" "}
-            <ThemedText type="defaultSemiBold">app</ThemedText> to{" "}
-            <ThemedText type="defaultSemiBold">app-example</ThemedText>.
+          <ThemedText
+            style={[styles.channelTitle, { color: secondaryTextColor }]}
+            numberOfLines={1}
+          >
+            {item.channelTitle}
           </ThemedText>
         </ThemedView>
       </ThemedView>
-    </Animated.ScrollView>
+    </TouchableOpacity>
+  );
+
+  return (
+    <ThemedView style={[styles.container, { backgroundColor }]}>
+      {/* Animated Header */}
+      <Animated.View
+        style={[
+          styles.animatedHeader,
+          {
+            height: headerHeight,
+            backgroundColor: backgroundColor,
+            borderBottomColor: secondaryTextColor,
+            borderBottomWidth: headerBorderWidth,
+            paddingTop: insets.top,
+          },
+        ]}
+      >
+        <Animated.View
+          style={[styles.smallHeaderContent, { opacity: smallTitleOpacity }]}
+        >
+          <ThemedText style={[styles.smallTitle, { color: textColor }]}>
+            Videos
+          </ThemedText>
+        </Animated.View>
+      </Animated.View>
+
+      {/* Video List with Large Title */}
+      <Animated.FlatList
+        data={videoList}
+        renderItem={renderVideoItem}
+        contentContainerStyle={[styles.listContainer, { paddingTop: 20 }]}
+        contentInsetAdjustmentBehavior="automatic"
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        ListHeaderComponent={
+          <Animated.View
+            style={[
+              styles.largeTitleContainer,
+              {
+                opacity: largeTitleOpacity,
+              },
+            ]}
+          >
+            <ThemedText style={[styles.largeTitle, { color: textColor }]}>
+              Videos
+            </ThemedText>
+          </Animated.View>
+        }
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
+        ItemSeparatorComponent={() => <ThemedView style={styles.separator} />}
+      />
+    </ThemedView>
   );
 }
 
@@ -90,30 +174,78 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    height: 100,
-    overflow: "hidden",
-  },
-  content: {
-    flex: 1,
-    padding: 32,
-    gap: 16,
-    overflow: "hidden",
-  },
-  titleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
+  // Animated header styles
+  animatedHeader: {
     position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+  },
+  smallHeaderContent: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingBottom: 8,
+  },
+  smallTitle: {
+    fontSize: 17,
+    fontWeight: "600",
+  },
+  // Large title styles
+  largeTitleContainer: {
+    paddingBottom: 16,
+    paddingTop: 8,
+  },
+  largeTitle: {
+    fontSize: 34,
+    fontWeight: "700",
+    letterSpacing: 0.41,
+    lineHeight: 42,
+  },
+  // List styles
+  listContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 32,
+  },
+  videoItem: {
+    marginBottom: 16,
+  },
+  videoCard: {
+    borderRadius: 12,
+    overflow: "hidden",
+    backgroundColor: "transparent",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  videoImage: {
+    width: "100%",
+    aspectRatio: 16 / 9,
+    backgroundColor: "#f2f2f7",
+  },
+  videoInfo: {
+    padding: 12,
+  },
+  videoTitle: {
+    fontSize: 15,
+    fontWeight: "500",
+    lineHeight: 20,
+  },
+  channelTitle: {
+    fontSize: 13,
+    marginTop: 2,
+    lineHeight: 18,
+  },
+  separator: {
+    height: 8,
   },
 });
