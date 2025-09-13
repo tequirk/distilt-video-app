@@ -1,3 +1,4 @@
+import { BlurView } from "expo-blur";
 import * as WebBrowser from "expo-web-browser";
 import { useRef, useState } from "react";
 import {
@@ -77,9 +78,21 @@ export default function HomeScreen() {
     extrapolate: "clamp",
   });
 
-  const headerBorderWidth = scrollY.interpolate({
-    inputRange: [0, 20],
-    outputRange: [0, StyleSheet.hairlineWidth],
+  // const headerBorderWidth = scrollY.interpolate({
+  //   inputRange: [0, 20],
+  //   outputRange: [0, StyleSheet.hairlineWidth],
+  //   extrapolate: "clamp",
+  // });
+
+  const blurOpacity = scrollY.interpolate({
+    inputRange: [0, 10],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
+
+  const solidBackgroundOpacity = scrollY.interpolate({
+    inputRange: [0, 10],
+    outputRange: [1, 0],
     extrapolate: "clamp",
   });
 
@@ -119,13 +132,47 @@ export default function HomeScreen() {
           styles.animatedHeader,
           {
             height: headerHeight,
-            backgroundColor: backgroundColor,
-            borderBottomColor: secondaryTextColor,
-            borderBottomWidth: headerBorderWidth,
             paddingTop: insets.top,
           },
         ]}
       >
+        {/* Solid background when not scrolling */}
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFillObject,
+            {
+              backgroundColor: backgroundColor,
+              opacity: solidBackgroundOpacity,
+            },
+          ]}
+        />
+        {/* Blur background when scrolling */}
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFillObject,
+            {
+              opacity: blurOpacity,
+            },
+          ]}
+        >
+          <BlurView
+            intensity={50}
+            tint="systemMaterial"
+            style={StyleSheet.absoluteFillObject}
+          />
+        </Animated.View>
+        <Animated.View
+          style={[
+            {
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              // height: headerBorderWidth,
+              backgroundColor: secondaryTextColor,
+            },
+          ]}
+        />
         <Animated.View
           style={[styles.smallHeaderContent, { opacity: smallTitleOpacity }]}
         >

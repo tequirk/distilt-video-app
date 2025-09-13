@@ -28,7 +28,13 @@ export default function RootLayout() {
           />
           <Stack.Screen
             name="about"
-            options={{ headerShown: true, title: "About" }}
+            options={{
+              headerShown: true,
+              title: "About",
+              headerTransparent: true,
+              headerBlurEffect: "regular",
+              headerLargeTitle: false,
+            }}
           />
           <Stack.Screen
             name="modal"

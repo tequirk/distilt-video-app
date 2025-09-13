@@ -1,3 +1,4 @@
+import { BlurView } from "expo-blur";
 import { router } from "expo-router";
 import React, { useRef } from "react";
 import { Animated, StyleSheet, TouchableOpacity } from "react-native";
@@ -45,9 +46,15 @@ export default function SettingsScreen() {
     extrapolate: "clamp",
   });
 
-  const headerBorderWidth = scrollY.interpolate({
-    inputRange: [0, 20],
-    outputRange: [0, StyleSheet.hairlineWidth],
+  const blurOpacity = scrollY.interpolate({
+    inputRange: [0, 10],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
+
+  const solidBackgroundOpacity = scrollY.interpolate({
+    inputRange: [0, 10],
+    outputRange: [1, 0],
     extrapolate: "clamp",
   });
 
@@ -59,13 +66,46 @@ export default function SettingsScreen() {
           styles.animatedHeader,
           {
             height: headerHeight,
-            backgroundColor: backgroundColor,
-            borderBottomColor: secondaryTextColor,
-            borderBottomWidth: headerBorderWidth,
             paddingTop: insets.top,
           },
         ]}
       >
+        {/* Solid background when not scrolling */}
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFillObject,
+            {
+              backgroundColor: backgroundColor,
+              opacity: solidBackgroundOpacity,
+            },
+          ]}
+        />
+        {/* Blur background when scrolling */}
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFillObject,
+            {
+              opacity: blurOpacity,
+            },
+          ]}
+        >
+          <BlurView
+            intensity={50}
+            tint="systemMaterial"
+            style={StyleSheet.absoluteFillObject}
+          />
+        </Animated.View>
+        <Animated.View
+          style={[
+            {
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              backgroundColor: secondaryTextColor,
+            },
+          ]}
+        />
         <Animated.View
           style={[styles.smallHeaderContent, { opacity: smallTitleOpacity }]}
         >
