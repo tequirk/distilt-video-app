@@ -100,7 +100,7 @@ export function useVideoDatabase() {
       try {
         if (videosToSave.length === 0) return;
 
-        // First, check which videos already exist
+        // First, check which videos already exist by ID
         const existingVideoIds = await db
           .select({ id: videos.id })
           .from(videos)
@@ -112,10 +112,38 @@ export function useVideoDatabase() {
           );
 
         const existingIds = new Set(existingVideoIds.map((v) => v.id));
+
+        // Also check for videos with the same title (potential duplicates)
+        const existingVideoTitles = await db
+          .select({ title: videos.title, dateTime: videos.dateTime })
+          .from(videos)
+          .where(
+            inArray(
+              videos.title,
+              videosToSave.map((v) => v.title)
+            )
+          );
+
+        const existingTitles = new Map(
+          existingVideoTitles.map((v) => [v.title, new Date(v.dateTime)])
+        );
+
         const now = new Date().toISOString();
 
-        // Separate new videos from updates
-        const newVideos = videosToSave.filter((v) => !existingIds.has(v.id));
+        // Separate new videos from updates, and filter out title duplicates
+        const newVideos = videosToSave.filter((v) => {
+          if (existingIds.has(v.id)) return false;
+
+          const existingDate = existingTitles.get(v.title);
+          if (existingDate && v.dateTime >= existingDate) {
+            // Skip if we already have this title and the existing one is older or same age
+            console.log(`Skipping duplicate video with title: "${v.title}"`);
+            return false;
+          }
+
+          return true;
+        });
+
         const updatedVideos = videosToSave.filter((v) => existingIds.has(v.id));
 
         // Insert new videos

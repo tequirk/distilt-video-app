@@ -33,6 +33,28 @@ interface RSSFeed {
 }
 
 /**
+ * Removes duplicate videos based on title, keeping the oldest published entry
+ * @param videos Array of videos to deduplicate
+ * @returns YouTubeVideo[] Array with duplicates removed
+ */
+function removeDuplicateVideos(videos: YouTubeVideo[]): YouTubeVideo[] {
+  const seenTitles = new Map<string, YouTubeVideo>();
+
+  for (const video of videos) {
+    const normalizedTitle = video.title.trim().toLowerCase();
+    const existing = seenTitles.get(normalizedTitle);
+
+    if (!existing || video.dateTime < existing.dateTime) {
+      // Keep this video if it's the first we've seen with this title
+      // or if it was published earlier than the existing one
+      seenTitles.set(normalizedTitle, video);
+    }
+  }
+
+  return Array.from(seenTitles.values());
+}
+
+/**
  * Fetches videos from a YouTube channel's RSS feed
  * @param channelId The YouTube channel ID
  * @returns Promise<YouTubeVideo[]> Array of videos from the channel
@@ -65,7 +87,8 @@ export async function fetchChannelVideos(
       ? result.feed.entry
       : [result.feed.entry];
 
-    return entries.map(
+    // Map entries to YouTubeVideo objects
+    const videos = entries.map(
       (entry: RSSEntry): YouTubeVideo => ({
         id: entry["yt:videoId"],
         title: entry.title,
@@ -75,6 +98,9 @@ export async function fetchChannelVideos(
         channelId: entry["yt:channelId"],
       })
     );
+
+    // Remove duplicates - keep the oldest published entry
+    return removeDuplicateVideos(videos);
   } catch (error) {
     console.error(`Error fetching videos for channel ${channelId}:`, error);
     return [];
