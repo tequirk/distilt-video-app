@@ -63,18 +63,20 @@ function RightAction(
 const SwipeableChannelItem = ({
   channel,
   onRemove,
+  onEdit,
   textColor,
   secondaryTextColor,
+  cardBackgroundColor,
   borderColor,
-  isLast,
   onSwipeableRef,
 }: {
   channel: Channels;
   onRemove: (channelId: string) => void;
+  onEdit: (channel: Channels) => void;
   textColor: string;
   secondaryTextColor: string;
+  cardBackgroundColor: string;
   borderColor: string;
-  isLast: boolean;
   onSwipeableRef: (id: string, ref: SwipeableMethods | null) => void;
 }) => {
   const swipeableRef = useRef<SwipeableMethods>(null);
@@ -114,24 +116,29 @@ const SwipeableChannelItem = ({
           // This fires when the swipe closes
         }}
       >
-        <View style={styles.channelItemContainer}>
-          <TouchableOpacity style={styles.channelItem} activeOpacity={0.7}>
-            <View style={styles.channelInfo}>
-              <Text style={[styles.channelTitle, { color: textColor }]}>
-                {channel.title}
-              </Text>
-              <Text style={[styles.channelId, { color: secondaryTextColor }]}>
-                {channel.id}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={[
+            styles.channelItem,
+            {
+              backgroundColor: "transparent",
+              borderBottomColor: borderColor,
+            },
+          ]}
+          activeOpacity={0.7}
+          onPress={() => onEdit(channel)}
+        >
+          <View style={styles.channelInfo}>
+            <Text style={[styles.channelTitle, { color: textColor }]}>
+              {channel.title}
+            </Text>
+          </View>
+          <Ionicons
+            name="chevron-forward"
+            size={16}
+            color={secondaryTextColor}
+          />
+        </TouchableOpacity>
       </ReanimatedSwipeable>
-
-      {/* Separator */}
-      {!isLast && (
-        <View style={[styles.separator, { backgroundColor: borderColor }]} />
-      )}
     </View>
   );
 };
@@ -365,6 +372,98 @@ export default function ChannelsScreen() {
     );
   };
 
+  const handleEditChannel = (channel: Channels) => {
+    Alert.prompt(
+      "Edit Channel ID",
+      `${channel.id}`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Update",
+          onPress: async (newChannelId?: string) => {
+            if (
+              newChannelId &&
+              newChannelId.trim() &&
+              newChannelId.trim() !== channel.id
+            ) {
+              await updateChannelId(channel.id, newChannelId.trim());
+            }
+          },
+        },
+      ],
+      "plain-text",
+      channel.id,
+      "default"
+    );
+  };
+
+  const updateChannelId = async (
+    oldChannelId: string,
+    newChannelId: string
+  ) => {
+    try {
+      setLoading(true);
+
+      // Extract channel ID from URL or validate direct channel ID input
+      const extractedChannelId = extractChannelId(newChannelId);
+
+      if (!extractedChannelId) {
+        Alert.alert(
+          "Error",
+          "Invalid format. Please use a channel URL like:\nhttps://www.youtube.com/channel/UC...\nor a direct channel ID"
+        );
+        return;
+      }
+
+      // Check if the new channel ID already exists
+      const existingChannels = await db
+        .select()
+        .from(channels)
+        .where(eq(channels.id, extractedChannelId));
+
+      if (existingChannels.length > 0 && extractedChannelId !== oldChannelId) {
+        Alert.alert("Error", "This channel ID is already added");
+        return;
+      }
+
+      // Validate new channel ID
+      const isValid = await validateChannelId(extractedChannelId);
+      if (!isValid) {
+        Alert.alert("Error", "Invalid channel ID or channel not found");
+        return;
+      }
+
+      // Get new channel info
+      const channelInfo = await fetchChannelInfo(extractedChannelId);
+      if (!channelInfo) {
+        Alert.alert("Error", "Could not fetch channel information");
+        return;
+      }
+
+      // Update channel in database
+      await db
+        .update(channels)
+        .set({
+          id: channelInfo.id,
+          title: channelInfo.title,
+        })
+        .where(eq(channels.id, oldChannelId));
+
+      // Delete videos from the old channel
+      await db.delete(videos).where(eq(videos.channelId, oldChannelId));
+
+      Alert.alert("Success", `Updated channel: ${channelInfo.title}`);
+      await loadChannels();
+
+      // Trigger video refresh
+      triggerVideoRefresh();
+    } catch {
+      Alert.alert("Error", "Failed to update channel");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <ThemedView style={[styles.container, { backgroundColor }]}>
       {/* Animated Header */}
@@ -439,35 +538,47 @@ export default function ChannelsScreen() {
         {/* Subscribed Channels Section */}
         <ThemedView style={styles.section}>
           {channelsList.length === 0 ? (
-            <ThemedView
-              style={[styles.card, { backgroundColor: cardBackgroundColor }]}
-            >
-              <ThemedText
-                style={[styles.emptyText, { color: secondaryTextColor }]}
-              >
-                Add a channel to get started.
-              </ThemedText>
-            </ThemedView>
+            // Empty state - just render an empty section
+            <ThemedView style={styles.emptySection} />
           ) : (
-            <ThemedView
-              style={[styles.card, { backgroundColor: cardBackgroundColor }]}
-            >
+            <>
               {channelsList.map((channel, index) => (
                 <SwipeableChannelItem
                   key={channel.id}
                   channel={channel}
                   onRemove={handleRemoveChannel}
+                  onEdit={handleEditChannel}
                   textColor={textColor}
                   secondaryTextColor={secondaryTextColor}
+                  cardBackgroundColor={cardBackgroundColor}
                   borderColor={borderColor}
-                  isLast={index === channelsList.length - 1}
                   onSwipeableRef={handleSwipeableRef}
                 />
               ))}
-            </ThemedView>
+            </>
           )}
         </ThemedView>
       </Animated.ScrollView>
+
+      {/* Empty State Message - positioned near FAB */}
+      {channelsList.length === 0 && (
+        <ThemedView
+          style={[styles.emptyStateContainer, { bottom: insets.bottom + 50 }]}
+        >
+          <ThemedView
+            style={[
+              styles.emptyStateCard,
+              { backgroundColor: cardBackgroundColor },
+            ]}
+          >
+            <ThemedText
+              style={[styles.emptyStateText, { color: secondaryTextColor }]}
+            >
+              Add a channel to get started
+            </ThemedText>
+          </ThemedView>
+        </ThemedView>
+      )}
 
       {/* Floating Action Button */}
       <TouchableOpacity
@@ -547,23 +658,22 @@ const styles = StyleSheet.create({
     }),
   },
   channelItem: {
-    flex: 1,
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 16,
+    justifyContent: "space-between",
+    // paddingHorizontal: 16,
     paddingVertical: 12,
-    height: "100%",
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   channelInfo: {
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
-    marginRight: 12,
   },
   channelTitle: {
     fontSize: 16,
     fontWeight: "500",
     lineHeight: 22,
-    marginBottom: 2,
   },
   channelId: {
     fontSize: 13,
@@ -572,6 +682,41 @@ const styles = StyleSheet.create({
   separator: {
     height: StyleSheet.hairlineWidth,
     marginLeft: 16,
+  },
+  emptySection: {
+    // Empty section when no channels, takes minimal space
+    height: 1,
+  },
+  emptyStateContainer: {
+    position: "absolute",
+    right: 80, // Position to the left of the FAB
+    alignItems: "center",
+    zIndex: 999,
+  },
+  emptyStateCard: {
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    borderBottomLeftRadius: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    maxWidth: 280,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  emptyStateText: {
+    fontSize: 16,
+    fontWeight: "500",
+    lineHeight: 22,
+    textAlign: "center",
   },
   emptyText: {
     fontSize: 16,
@@ -615,14 +760,16 @@ const styles = StyleSheet.create({
     height: 80,
   },
   rightAction: {
-    width: 80,
+    width: 60,
     backgroundColor: "#FF3B30",
     justifyContent: "center",
     alignItems: "center",
-    height: "100%",
+    borderRadius: 28,
+    marginLeft: 8,
+    height: 38, // Slightly smaller than channel item height for better visual balance
+    alignSelf: "center", // Vertically center within the swipe area
   },
   deleteButton: {
-    padding: 16,
     width: "100%",
     height: "100%",
     justifyContent: "center",

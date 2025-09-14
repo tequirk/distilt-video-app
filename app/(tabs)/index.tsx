@@ -1,4 +1,5 @@
 import { BlurView } from "expo-blur";
+import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -13,6 +14,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { channels } from "@/data/schema";
+import { useDb } from "@/data/useDb";
 import { useVideoRefresh } from "@/data/videoRefreshContext";
 import { useVideos } from "@/data/videoService";
 import { useThemeColor } from "@/hooks/use-theme-color";
@@ -80,9 +83,27 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const { getVideos, refreshVideos } = useVideos();
   const { shouldRefresh, resetRefreshTrigger } = useVideoRefresh();
+  const { db } = useDb();
 
   // Animation values
   const scrollY = useRef(new Animated.Value(0)).current;
+
+  // Check if user has channels and navigate to channels tab if not
+  useEffect(() => {
+    const checkChannelsAndNavigate = async () => {
+      try {
+        const channelData = await db.select().from(channels);
+        if (channelData.length === 0) {
+          // No channels found, navigate to channels tab
+          router.push("/channels");
+        }
+      } catch (error) {
+        console.error("Error checking channels:", error);
+      }
+    };
+
+    checkChannelsAndNavigate();
+  }, [db]);
 
   // Memoize the openVideo callback
   const openVideo = useCallback((videoId: string) => {
@@ -298,6 +319,30 @@ export default function HomeScreen() {
         )}
         scrollEventThrottle={16}
         ItemSeparatorComponent={() => <ThemedView style={styles.separator} />}
+        ListEmptyComponent={
+          !refreshing ? (
+            <ThemedView style={styles.emptyContainer}>
+              <ThemedView
+                style={[
+                  styles.emptyCard,
+                  { backgroundColor: cardBackgroundColor },
+                ]}
+              >
+                <ThemedText style={[styles.emptyTitle, { color: textColor }]}>
+                  No Videos Yet
+                </ThemedText>
+                <ThemedText
+                  style={[
+                    styles.emptyDescription,
+                    { color: secondaryTextColor },
+                  ]}
+                >
+                  Add some channels to see their latest videos here
+                </ThemedText>
+              </ThemedView>
+            </ThemedView>
+          ) : null
+        }
       />
     </ThemedView>
   );
@@ -385,5 +430,39 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: 8,
+  },
+  // Empty state styles
+  emptyContainer: {
+    paddingTop: 60,
+    paddingHorizontal: 20,
+    alignItems: "center",
+  },
+  emptyCard: {
+    borderRadius: 12,
+    padding: 32,
+    alignItems: "center",
+    maxWidth: 300,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  emptyDescription: {
+    fontSize: 16,
+    lineHeight: 22,
+    textAlign: "center",
   },
 });
