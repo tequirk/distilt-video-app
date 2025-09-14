@@ -1,7 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { router } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
 import React, {
   useCallback,
   useEffect,
@@ -41,14 +40,14 @@ const VideoItem = React.memo(
     cardBackgroundColor,
   }: {
     item: YouTubeVideo;
-    onPress: (videoId: string) => void;
+    onPress: (video: YouTubeVideo) => void;
     textColor: string;
     secondaryTextColor: string;
     cardBackgroundColor: string;
   }) => (
     <TouchableOpacity
       style={styles.videoItem}
-      onPress={() => onPress(item.id)}
+      onPress={() => onPress(item)}
       activeOpacity={0.7}
     >
       <ThemedView style={styles.videoCard}>
@@ -237,9 +236,9 @@ export default function HomeScreen() {
   }, [db]);
 
   // Memoize the openVideo callback
-  const openVideo = useCallback((videoId: string) => {
-    const url = `https://www.youtube.com/embed/${videoId}`;
-    WebBrowser.openBrowserAsync(url);
+  const openVideo = useCallback((video: YouTubeVideo) => {
+    const encodedTitle = encodeURIComponent(video.title);
+    router.push(`/modal?videoId=${video.id}&title=${encodedTitle}`);
   }, []);
 
   // Memoize the renderVideoItem function
