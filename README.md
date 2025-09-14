@@ -1,6 +1,6 @@
 # Distilt Video™
 
-A YouTube RSS client built with React Native and Expo. Subscribe to YouTube channels and view their latest videos in a clean, distraction-free interface.
+A YouTube RSS client. Subscribe to YouTube channels and view their latest videos in a clean, distraction-free interface.
 
 ## Features
 
