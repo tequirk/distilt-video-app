@@ -24,13 +24,14 @@ The app accepts YouTube channels in these formats:
 - **Animations**: React Native Reanimated for smooth interactions
 - **Data Fetching**: YouTube RSS feeds
 
-## License
-
-Copyright © 2025 Tequirk LLC. All Rights Reserved.
-
 ## Acknowledgments
 
 - Built with [Expo](https://expo.dev/)
 - Uses [Drizzle ORM](https://orm.drizzle.team/) for database management
 - Powered by YouTube RSS feeds
-- Icons by [Expo Vector Icons](https://icons.expo.fyi/)
+
+## Legal
+
+Distilt Video™
+
+Copyright © 2025 Tequirk LLC. All Rights Reserved.
