@@ -1,6 +1,6 @@
 import { BlurView } from "expo-blur";
 import * as WebBrowser from "expo-web-browser";
-import { useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
   Image,
@@ -13,93 +13,29 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import videos from "@/data";
+import { useVideoRefresh } from "@/data/videoRefreshContext";
+import { useVideos } from "@/data/videoService";
 import { useThemeColor } from "@/hooks/use-theme-color";
+import { YouTubeVideo } from "@/services/youtube-rss";
 
-interface Video {
-  id: string;
-  title: string;
-  img: string;
-  dateTime: Date;
-  channelTitle: string;
-}
-
-export default function HomeScreen() {
-  const backgroundColor = useThemeColor({}, "background");
-  const textColor = useThemeColor({}, "text");
-  const insets = useSafeAreaInsets();
-  const [videoList, setVideoList] = useState<Video[]>(videos);
-  const [refreshing, setRefreshing] = useState(false);
-
-  // Animation values
-  const scrollY = useRef(new Animated.Value(0)).current;
-
-  // Card colors for light/dark theme
-  const cardBackgroundColor = useThemeColor(
-    { light: "#f2f2f7", dark: "#1a1a1c" },
-    "background"
-  );
-  const secondaryTextColor = useThemeColor(
-    { light: "#8e8e93", dark: "#8e8e93" },
-    "text"
-  );
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    // Simulate API call
-    setTimeout(() => {
-      console.log("Refreshing videos...");
-      setVideoList([...videos]);
-      setRefreshing(false);
-    }, 1000);
-  };
-
-  const openVideo = (videoId: string) => {
-    const url = `https://www.youtube.com/embed/${videoId}`;
-    WebBrowser.openBrowserAsync(url);
-  };
-
-  // Header animation
-  const headerHeight = scrollY.interpolate({
-    inputRange: [0, 50],
-    outputRange: [0, 44 + insets.top],
-    extrapolate: "clamp",
-  });
-
-  const largeTitleOpacity = scrollY.interpolate({
-    inputRange: [0, 20],
-    outputRange: [1, 0],
-    extrapolate: "clamp",
-  });
-
-  const smallTitleOpacity = scrollY.interpolate({
-    inputRange: [10, 50],
-    outputRange: [0, 1],
-    extrapolate: "clamp",
-  });
-
-  // const headerBorderWidth = scrollY.interpolate({
-  //   inputRange: [0, 20],
-  //   outputRange: [0, StyleSheet.hairlineWidth],
-  //   extrapolate: "clamp",
-  // });
-
-  const blurOpacity = scrollY.interpolate({
-    inputRange: [0, 10],
-    outputRange: [0, 1],
-    extrapolate: "clamp",
-  });
-
-  const solidBackgroundOpacity = scrollY.interpolate({
-    inputRange: [0, 10],
-    outputRange: [1, 0],
-    extrapolate: "clamp",
-  });
-
-  const renderVideoItem = ({ item }: { item: Video }) => (
+// Memoized video item component for performance
+const VideoItem = React.memo(
+  ({
+    item,
+    onPress,
+    textColor,
+    secondaryTextColor,
+    cardBackgroundColor,
+  }: {
+    item: YouTubeVideo;
+    onPress: (videoId: string) => void;
+    textColor: string;
+    secondaryTextColor: string;
+    cardBackgroundColor: string;
+  }) => (
     <TouchableOpacity
       style={styles.videoItem}
-      onPress={() => openVideo(item.id)}
+      onPress={() => onPress(item.id)}
       activeOpacity={0.7}
     >
       <ThemedView style={styles.videoCard}>
@@ -122,7 +58,151 @@ export default function HomeScreen() {
         </ThemedView>
       </ThemedView>
     </TouchableOpacity>
+  )
+);
+
+VideoItem.displayName = "VideoItem";
+
+export default function HomeScreen() {
+  const backgroundColor = useThemeColor({}, "background");
+  const textColor = useThemeColor({}, "text");
+  const cardBackgroundColor = useThemeColor(
+    { light: "#f2f2f7", dark: "#1a1a1c" },
+    "background"
   );
+  const secondaryTextColor = useThemeColor(
+    { light: "#8e8e93", dark: "#8e8e93" },
+    "text"
+  );
+
+  const insets = useSafeAreaInsets();
+  const [videoList, setVideoList] = useState<YouTubeVideo[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const { getVideos, refreshVideos } = useVideos();
+  const { shouldRefresh, resetRefreshTrigger } = useVideoRefresh();
+
+  // Animation values
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  // Memoize the openVideo callback
+  const openVideo = useCallback((videoId: string) => {
+    const url = `https://www.youtube.com/embed/${videoId}`;
+    WebBrowser.openBrowserAsync(url);
+  }, []);
+
+  // Memoize the renderVideoItem function
+  const renderVideoItem = useCallback(
+    ({ item }: { item: YouTubeVideo }) => (
+      <VideoItem
+        item={item}
+        onPress={openVideo}
+        textColor={textColor}
+        secondaryTextColor={secondaryTextColor}
+        cardBackgroundColor={cardBackgroundColor}
+      />
+    ),
+    [openVideo, textColor, secondaryTextColor, cardBackgroundColor]
+  );
+
+  // Memoize the keyExtractor function
+  const keyExtractor = useCallback((item: YouTubeVideo) => item.id, []);
+
+  // Load videos on component mount
+  useEffect(() => {
+    const loadVideos = async () => {
+      try {
+        console.log("Starting to load videos...");
+        setRefreshing(true);
+        const videos = await getVideos();
+        console.log(`Loaded ${videos.length} videos from service`);
+
+        // Sort videos by date (newest first) as a backup
+        const sortedVideos = videos.sort(
+          (a, b) => b.dateTime.getTime() - a.dateTime.getTime()
+        );
+        setVideoList(sortedVideos);
+        console.log(`Set ${sortedVideos.length} videos in state`);
+      } catch (error) {
+        console.error("Error loading videos:", error);
+      } finally {
+        setRefreshing(false);
+      }
+    };
+
+    loadVideos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount to avoid infinite loop
+
+  // Listen for channel changes and refresh videos
+  useEffect(() => {
+    if (shouldRefresh) {
+      const refreshFromChannelChange = async () => {
+        setRefreshing(true);
+        try {
+          const videos = await refreshVideos();
+          const sortedVideos = videos.sort(
+            (a, b) => b.dateTime.getTime() - a.dateTime.getTime()
+          );
+          setVideoList(sortedVideos);
+        } catch (error) {
+          console.error("Error refreshing videos from channel change:", error);
+        } finally {
+          setRefreshing(false);
+          // Reset the trigger after consumption
+          resetRefreshTrigger();
+        }
+      };
+
+      refreshFromChannelChange();
+    }
+  }, [shouldRefresh, refreshVideos, resetRefreshTrigger]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const videos = await refreshVideos();
+      // Sort videos by date (newest first) as a backup
+      const sortedVideos = videos.sort(
+        (a, b) => b.dateTime.getTime() - a.dateTime.getTime()
+      );
+      setVideoList(sortedVideos);
+    } catch (error) {
+      console.error("Error refreshing videos:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refreshVideos]);
+
+  // Header animation
+  const headerHeight = scrollY.interpolate({
+    inputRange: [0, 50],
+    outputRange: [0, 44 + insets.top],
+    extrapolate: "clamp",
+  });
+
+  const largeTitleOpacity = scrollY.interpolate({
+    inputRange: [0, 20],
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
+
+  const smallTitleOpacity = scrollY.interpolate({
+    inputRange: [10, 50],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
+
+  const blurOpacity = scrollY.interpolate({
+    inputRange: [0, 10],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
+
+  const solidBackgroundOpacity = scrollY.interpolate({
+    inputRange: [0, 10],
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
 
   return (
     <ThemedView style={[styles.container, { backgroundColor }]}>
@@ -186,12 +266,18 @@ export default function HomeScreen() {
       <Animated.FlatList
         data={videoList}
         renderItem={renderVideoItem}
+        keyExtractor={keyExtractor}
         contentContainerStyle={[styles.listContainer, { paddingTop: 20 }]}
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        updateCellsBatchingPeriod={100}
+        initialNumToRender={8}
+        windowSize={10}
         ListHeaderComponent={
           <Animated.View
             style={[
@@ -249,6 +335,11 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 0.41,
     lineHeight: 42,
+  },
+  loadingText: {
+    fontSize: 16,
+    marginTop: 8,
+    fontStyle: "italic",
   },
   // List styles
   listContainer: {

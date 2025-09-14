@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "f31fcfce-4fd0-447d-a5f5-8589eef41727",
+  "id": "5d23eb0c-a791-4549-9a57-780e1228c659",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "channels": {
@@ -11,13 +11,6 @@
           "name": "id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "url": {
-          "name": "url",
-          "type": "text",
-          "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
@@ -72,9 +65,46 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        },
+        "channelTitle": {
+          "name": "channelTitle",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "videos_channel_date_idx": {
+          "name": "videos_channel_date_idx",
+          "columns": [
+            "channelId",
+            "dateTime"
+          ],
+          "isUnique": false
+        },
+        "videos_date_idx": {
+          "name": "videos_date_idx",
+          "columns": [
+            "dateTime"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "videos_channelId_channels_id_fk": {
           "name": "videos_channelId_channels_id_fk",

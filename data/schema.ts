@@ -1,5 +1,5 @@
 import { InferSelectModel } from "drizzle-orm";
-import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 ////////////////////////////////////////
 // Channels
@@ -10,7 +10,6 @@ import { sqliteTable, text } from "drizzle-orm/sqlite-core";
  */
 export const channels = sqliteTable("channels", {
   id: text("id").primaryKey(),
-  url: text("url").notNull(),
   title: text("title").notNull(),
 });
 
@@ -26,13 +25,29 @@ export type Channels = InferSelectModel<typeof channels>;
 /**
  * Videos from channels
  */
-export const videos = sqliteTable("videos", {
-  id: text("id").primaryKey(),
-  title: text("title").notNull(),
-  img: text("img").notNull(),
-  dateTime: text("dateTime").notNull(), // Store as ISO string
-  channelId: text("channelId").references(() => channels.id),
-});
+export const videos = sqliteTable(
+  "videos",
+  {
+    id: text("id").primaryKey(),
+    title: text("title").notNull(),
+    img: text("img").notNull(),
+    dateTime: text("dateTime").notNull(), // Store as ISO string
+    channelId: text("channelId").references(() => channels.id),
+    channelTitle: text("channelTitle").notNull(), // Denormalized for easier queries
+    createdAt: text("createdAt")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()), // When we first stored this video
+    updatedAt: text("updatedAt")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()), // Last time we updated this record
+  },
+  (table) => [
+    // Index for fast queries by channel and date
+    index("videos_channel_date_idx").on(table.channelId, table.dateTime),
+    // Index for fast queries by date across all channels
+    index("videos_date_idx").on(table.dateTime),
+  ]
+);
 
 /**
  * Videos from channels

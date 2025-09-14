@@ -23,41 +23,38 @@ export default function AboutScreen() {
         <ThemedView style={styles.contentContainer}>
           <ThemedView style={styles.appInfoContainer}>
             <ThemedText style={[styles.appName, { color: textColor }]}>
-              Distilt
+              Distilt™
             </ThemedText>
             <ThemedText
               style={[styles.appVersion, { color: secondaryTextColor }]}
             >
               YouTube RSS Client
             </ThemedText>
+            <ThemedText
+              style={[
+                styles.appVersion,
+                { color: secondaryTextColor, marginTop: 12 },
+              ]}
+            >
+              Copyright © 2025 Tequirk LLC.
+            </ThemedText>
+            <ThemedText
+              style={[styles.appVersion, { color: secondaryTextColor }]}
+            >
+              All Rights Reserved.
+            </ThemedText>
           </ThemedView>
 
-          <ThemedView style={styles.infoSection}>
+          {/* <ThemedView style={styles.infoSection}>
             <ThemedText style={[styles.sectionTitle, { color: textColor }]}>
-              User Guide
+              Section Title
             </ThemedText>
             <ThemedText
               style={[styles.sectionText, { color: secondaryTextColor }]}
             >
-              Enter a YouTube channel ID or username to fetch its RSS feed.
+              Section text.
             </ThemedText>
-          </ThemedView>
-
-          <ThemedView style={styles.infoSection}>
-            <ThemedText style={[styles.sectionTitle, { color: textColor }]}>
-              Legal
-            </ThemedText>
-            <ThemedText
-              style={[styles.sectionText, { color: secondaryTextColor }]}
-            >
-              Distilt™
-            </ThemedText>
-            <ThemedText
-              style={[styles.sectionText, { color: secondaryTextColor }]}
-            >
-              Copyright © 2025 Tequirk LLC. All Rights Reserved.
-            </ThemedText>
-          </ThemedView>
+          </ThemedView> */}
         </ThemedView>
       </ScrollView>
     </ThemedView>
@@ -71,10 +68,12 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingTop: 100, // Add top padding to account for transparent header
+    paddingBottom: 20,
   },
   contentContainer: {
     flex: 1,
+    justifyContent: "center",
   },
   appInfoContainer: {
     alignItems: "center",
