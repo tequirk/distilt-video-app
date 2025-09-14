@@ -19,7 +19,8 @@
         "image": "./assets/images/apple-touch-icon.png",
         "resizeMode": "contain",
         "backgroundColor": "#000000"
-      }
+      },
+      "bundleIdentifier": "com.distilt.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -53,6 +54,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "4d871023-1076-4112-8427-0670d724d83f"
+      }
     }
   }
 }
