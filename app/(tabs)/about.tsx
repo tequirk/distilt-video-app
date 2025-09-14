@@ -1,12 +1,10 @@
 import { BlurView } from "expo-blur";
-import { router } from "expo-router";
 import React, { useRef } from "react";
-import { Animated, StyleSheet, TouchableOpacity } from "react-native";
+import { Animated, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useThemeColor } from "@/hooks/use-theme-color";
 
 export default function SettingsScreen() {
@@ -15,10 +13,6 @@ export default function SettingsScreen() {
   // Theme colors
   const backgroundColor = useThemeColor({}, "background");
   const textColor = useThemeColor({}, "text");
-  const cardBackgroundColor = useThemeColor(
-    { light: "#f2f2f7", dark: "#1a1a1c" },
-    "background"
-  );
   const secondaryTextColor = useThemeColor(
     { light: "#8e8e93", dark: "#8e8e93" },
     "text"
@@ -110,7 +104,7 @@ export default function SettingsScreen() {
           style={[styles.smallHeaderContent, { opacity: smallTitleOpacity }]}
         >
           <ThemedText style={[styles.smallTitle, { color: textColor }]}>
-            Settings
+            About
           </ThemedText>
         </Animated.View>
       </Animated.View>
@@ -135,43 +129,34 @@ export default function SettingsScreen() {
           ]}
         >
           <ThemedText style={[styles.largeTitle, { color: textColor }]}>
-            Settings
+            About
           </ThemedText>
         </Animated.View>
 
-        {/* Settings content */}
         <ThemedView style={styles.contentContainer}>
-          {/* About Section */}
-          <TouchableOpacity
-            style={[
-              styles.settingsButton,
-              { backgroundColor: cardBackgroundColor },
-            ]}
-            onPress={() => router.push("/about")}
-            activeOpacity={0.7}
-          >
-            <ThemedView
-              style={[styles.buttonContent, { backgroundColor: "transparent" }]}
+          <ThemedView style={styles.appInfoContainer}>
+            <ThemedText style={[styles.appName, { color: textColor }]}>
+              Distilt Video™
+            </ThemedText>
+            <ThemedText
+              style={[styles.appVersion, { color: secondaryTextColor }]}
             >
-              <IconSymbol size={24} name="info.circle" color={textColor} />
-              <ThemedText style={[styles.buttonText, { color: textColor }]}>
-                About
-              </ThemedText>
-            </ThemedView>
-            <IconSymbol
-              size={16}
-              name="chevron.right"
-              color={secondaryTextColor}
-            />
-          </TouchableOpacity>
-
-          {/* Theme setting placeholder */}
-          {/* <ThemedView style={styles.sectionSpacer} />
-          <ThemedText
-            style={[styles.placeholderText, { color: secondaryTextColor }]}
-          >
-            Theme setting coming soon...
-          </ThemedText> */}
+              YouTube RSS Client
+            </ThemedText>
+            <ThemedText
+              style={[
+                styles.appVersion,
+                { color: secondaryTextColor, marginTop: 12 },
+              ]}
+            >
+              Copyright © 2025 Tequirk LLC.
+            </ThemedText>
+            <ThemedText
+              style={[styles.appVersion, { color: secondaryTextColor }]}
+            >
+              All Rights Reserved.
+            </ThemedText>
+          </ThemedView>
         </ThemedView>
       </Animated.ScrollView>
     </ThemedView>
@@ -214,9 +199,11 @@ const styles = StyleSheet.create({
   // Content styles
   listContainer: {
     paddingHorizontal: 20,
-    paddingBottom: 32,
   },
-  contentContainer: {},
+  contentContainer: {
+    flex: 1,
+    minHeight: "100%",
+  },
   // Settings button styles
   settingsButton: {
     flexDirection: "row",
@@ -237,5 +224,50 @@ const styles = StyleSheet.create({
   placeholderText: {
     fontSize: 16,
     paddingVertical: 4,
+  },
+
+  scrollContainer: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+  },
+
+  appInfoContainer: {
+    alignItems: "center",
+    flex: 1,
+    minHeight: "100%",
+    justifyContent: "center",
+    paddingBottom: 200,
+  },
+  appName: {
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: "700",
+  },
+  appVersion: {
+    fontSize: 16,
+  },
+  descriptionContainer: {
+    paddingBottom: 24,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#3c3c43",
+  },
+  description: {
+    fontSize: 16,
+    lineHeight: 24,
+    textAlign: "center",
+  },
+  infoSection: {
+    paddingVertical: 24,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#3c3c43",
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  sectionText: {
+    fontSize: 16,
+    lineHeight: 24,
   },
 });

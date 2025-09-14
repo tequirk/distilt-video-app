@@ -135,6 +135,9 @@ const ChannelFilterList = React.memo(
     textColor: string;
     cardBackgroundColor: string;
   }) => {
+    if (channelList.length === 0) {
+      return null; // Don't render anything if there are no channels
+    }
     return (
       <ScrollView
         horizontal
