@@ -9,7 +9,17 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "icon": {
+        "dark": "./assets/images/apple-touch-icon.png",
+        "light": "./assets/images/apple-touch-icon.png",
+        "tinted": "./assets/images/apple-touch-icon.png"
+      },
+      "splash": {
+        "image": "./assets/images/apple-touch-icon.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#000000"
+      }
     },
     "android": {
       "adaptiveIcon": {
