@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -188,6 +189,7 @@ export default function HomeScreen() {
     { id: string; title: string }[]
   >([]);
   const [selectedChannel, setSelectedChannel] = useState<string>("All");
+  const [showScrollToTop, setShowScrollToTop] = useState(false);
   const { getVideos, refreshVideos } = useVideos();
   const { getChannels } = useChannels();
   const { shouldRefresh, resetRefreshTrigger } = useVideoRefresh();
@@ -195,6 +197,24 @@ export default function HomeScreen() {
 
   // Animation values
   const scrollY = useRef(new Animated.Value(0)).current;
+  const flatListRef = useRef<Animated.FlatList>(null);
+
+  // Scroll to top function
+  const scrollToTop = useCallback(() => {
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+  }, []);
+
+  // Enhanced onScroll handler to track both animation and button visibility
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    {
+      useNativeDriver: false,
+      listener: (event: any) => {
+        const offsetY = event.nativeEvent.contentOffset.y;
+        setShowScrollToTop(offsetY > 200); // Show button after scrolling 200px
+      },
+    }
+  );
 
   // Check if user has channels and navigate to channels tab if not
   useEffect(() => {
@@ -436,6 +456,7 @@ export default function HomeScreen() {
 
       {/* Video List with Large Title */}
       <Animated.FlatList
+        ref={flatListRef}
         data={filteredVideoList}
         renderItem={renderVideoItem}
         keyExtractor={keyExtractor}
@@ -473,10 +494,7 @@ export default function HomeScreen() {
             />
           </Animated.View>
         }
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false }
-        )}
+        onScroll={handleScroll}
         scrollEventThrottle={16}
         ItemSeparatorComponent={() => <ThemedView style={styles.separator} />}
         ListEmptyComponent={
@@ -504,6 +522,23 @@ export default function HomeScreen() {
           ) : null
         }
       />
+
+      {/* Scroll to Top Floating Action Button */}
+      {showScrollToTop && (
+        <TouchableOpacity
+          style={[
+            styles.scrollToTopFab,
+            {
+              backgroundColor: tintColor,
+              bottom: insets.bottom,
+            },
+          ]}
+          onPress={scrollToTop}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="chevron-up" size={24} color="white" />
+        </TouchableOpacity>
+      )}
     </ThemedView>
   );
 }
@@ -644,5 +679,26 @@ const styles = StyleSheet.create({
   filterText: {
     fontSize: 12,
     fontWeight: "500",
+  },
+  // Scroll to top FAB styles
+  scrollToTopFab: {
+    position: "absolute",
+    right: 36,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
   },
 });
