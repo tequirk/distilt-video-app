@@ -1,12 +1,21 @@
+import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Animated,
   Image,
   Platform,
+  Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
@@ -14,6 +23,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { useChannels } from "@/data/channelService";
 import { channels } from "@/data/schema";
 import { useDb } from "@/data/useDb";
 import { useVideoRefresh } from "@/data/videoRefreshContext";
@@ -66,9 +76,103 @@ const VideoItem = React.memo(
 
 VideoItem.displayName = "VideoItem";
 
+// Memoized filter button component for performance
+const FilterButton = React.memo(
+  ({
+    title,
+    isSelected,
+    onPress,
+    tintColor,
+    textColor,
+    cardBackgroundColor,
+  }: {
+    title: string;
+    isSelected: boolean;
+    onPress: () => void;
+    tintColor: string;
+    textColor: string;
+    cardBackgroundColor: string;
+  }) => (
+    <Pressable
+      onPress={onPress}
+      style={[
+        styles.filterButton,
+        {
+          backgroundColor: isSelected ? tintColor : cardBackgroundColor,
+        },
+      ]}
+    >
+      <ThemedText
+        style={[
+          styles.filterText,
+          {
+            color: isSelected ? "#FFFFFF" : textColor,
+          },
+        ]}
+      >
+        {title}
+      </ThemedText>
+    </Pressable>
+  )
+);
+
+FilterButton.displayName = "FilterButton";
+
+// Memoized filter list component
+const ChannelFilterList = React.memo(
+  ({
+    channelList,
+    selectedChannel,
+    onChannelSelect,
+    tintColor,
+    textColor,
+    cardBackgroundColor,
+  }: {
+    channelList: { id: string; title: string }[];
+    selectedChannel: string;
+    onChannelSelect: (channel: string) => void;
+    tintColor: string;
+    textColor: string;
+    cardBackgroundColor: string;
+  }) => {
+    return (
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filterContainer}
+        contentContainerStyle={styles.filterContentContainer}
+      >
+        <FilterButton
+          title="All"
+          isSelected={selectedChannel === "All"}
+          onPress={() => onChannelSelect("All")}
+          tintColor={tintColor}
+          textColor={textColor}
+          cardBackgroundColor={cardBackgroundColor}
+        />
+        {channelList.length > 0 &&
+          channelList.map((channel) => (
+            <FilterButton
+              key={channel.id}
+              title={channel.title}
+              isSelected={selectedChannel === channel.title}
+              onPress={() => onChannelSelect(channel.title)}
+              tintColor={tintColor}
+              textColor={textColor}
+              cardBackgroundColor={cardBackgroundColor}
+            />
+          ))}
+      </ScrollView>
+    );
+  }
+);
+
+ChannelFilterList.displayName = "ChannelFilterList";
+
 export default function HomeScreen() {
   const backgroundColor = useThemeColor({}, "background");
   const textColor = useThemeColor({}, "text");
+  const tintColor = useThemeColor({}, "tint");
   const cardBackgroundColor = useThemeColor(
     { light: "#f2f2f7", dark: "#1a1a1c" },
     "background"
@@ -81,12 +185,36 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const [videoList, setVideoList] = useState<YouTubeVideo[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [channelList, setChannelList] = useState<
+    { id: string; title: string }[]
+  >([]);
+  const [selectedChannel, setSelectedChannel] = useState<string>("All");
+  const [showScrollToTop, setShowScrollToTop] = useState(false);
   const { getVideos, refreshVideos } = useVideos();
+  const { getChannels } = useChannels();
   const { shouldRefresh, resetRefreshTrigger } = useVideoRefresh();
   const { db } = useDb();
 
   // Animation values
   const scrollY = useRef(new Animated.Value(0)).current;
+  const flatListRef = useRef<Animated.FlatList>(null);
+
+  // Scroll to top function
+  const scrollToTop = useCallback(() => {
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+  }, []);
+
+  // Enhanced onScroll handler to track both animation and button visibility
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    {
+      useNativeDriver: false,
+      listener: (event: any) => {
+        const offsetY = event.nativeEvent.contentOffset.y;
+        setShowScrollToTop(offsetY > 200); // Show button after scrolling 200px
+      },
+    }
+  );
 
   // Check if user has channels and navigate to channels tab if not
   useEffect(() => {
@@ -128,6 +256,19 @@ export default function HomeScreen() {
   // Memoize the keyExtractor function
   const keyExtractor = useCallback((item: YouTubeVideo) => item.id, []);
 
+  // Memoize the onChannelSelect callback
+  const onChannelSelect = useCallback((channel: string) => {
+    setSelectedChannel(channel);
+  }, []);
+
+  // Memoize the filtered video list
+  const filteredVideoList = useMemo(() => {
+    if (selectedChannel === "All") {
+      return videoList;
+    }
+    return videoList.filter((video) => video.channelTitle === selectedChannel);
+  }, [videoList, selectedChannel]);
+
   // Load videos on component mount
   useEffect(() => {
     const loadVideos = async () => {
@@ -154,17 +295,47 @@ export default function HomeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run on mount to avoid infinite loop
 
+  // Load channels on component mount
+  useEffect(() => {
+    const loadChannels = async () => {
+      try {
+        const channels = await getChannels();
+        // Sort channels alphabetically by title
+        const sortedChannels = channels.sort((a, b) =>
+          a.title.localeCompare(b.title)
+        );
+        setChannelList(sortedChannels);
+      } catch (error) {
+        console.error("Error loading channels:", error);
+      }
+    };
+
+    loadChannels();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount to avoid infinite loop
+
   // Listen for channel changes and refresh videos
   useEffect(() => {
     if (shouldRefresh) {
       const refreshFromChannelChange = async () => {
         setRefreshing(true);
         try {
-          const videos = await refreshVideos();
+          // Refresh both videos and channels
+          const [videos, channels] = await Promise.all([
+            refreshVideos(),
+            getChannels(),
+          ]);
+
           const sortedVideos = videos.sort(
             (a, b) => b.dateTime.getTime() - a.dateTime.getTime()
           );
           setVideoList(sortedVideos);
+
+          // Sort and update channels
+          const sortedChannels = channels.sort((a, b) =>
+            a.title.localeCompare(b.title)
+          );
+          setChannelList(sortedChannels);
         } catch (error) {
           console.error("Error refreshing videos from channel change:", error);
         } finally {
@@ -176,7 +347,7 @@ export default function HomeScreen() {
 
       refreshFromChannelChange();
     }
-  }, [shouldRefresh, refreshVideos, resetRefreshTrigger]);
+  }, [shouldRefresh, refreshVideos, resetRefreshTrigger, getChannels]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -285,7 +456,8 @@ export default function HomeScreen() {
 
       {/* Video List with Large Title */}
       <Animated.FlatList
-        data={videoList}
+        ref={flatListRef}
+        data={filteredVideoList}
         renderItem={renderVideoItem}
         keyExtractor={keyExtractor}
         contentContainerStyle={[styles.listContainer, { paddingTop: 20 }]}
@@ -311,12 +483,18 @@ export default function HomeScreen() {
             <ThemedText style={[styles.largeTitle, { color: textColor }]}>
               Videos
             </ThemedText>
+            {/* Channel Filter Buttons - optimized memoized component */}
+            <ChannelFilterList
+              channelList={channelList}
+              selectedChannel={selectedChannel}
+              onChannelSelect={onChannelSelect}
+              tintColor={tintColor}
+              textColor={textColor}
+              cardBackgroundColor={cardBackgroundColor}
+            />
           </Animated.View>
         }
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false }
-        )}
+        onScroll={handleScroll}
         scrollEventThrottle={16}
         ItemSeparatorComponent={() => <ThemedView style={styles.separator} />}
         ListEmptyComponent={
@@ -344,6 +522,23 @@ export default function HomeScreen() {
           ) : null
         }
       />
+
+      {/* Scroll to Top Floating Action Button */}
+      {showScrollToTop && (
+        <TouchableOpacity
+          style={[
+            styles.scrollToTopFab,
+            {
+              backgroundColor: tintColor,
+              bottom: insets.bottom,
+            },
+          ]}
+          onPress={scrollToTop}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="chevron-up" size={24} color="white" />
+        </TouchableOpacity>
+      )}
     </ThemedView>
   );
 }
@@ -464,5 +659,46 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
     textAlign: "center",
+  },
+  // Filter styles
+  filterContainer: {
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  filterContentContainer: {
+    paddingHorizontal: 0,
+    alignItems: "center",
+    gap: 8,
+  },
+  filterButton: {
+    borderRadius: 24,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginRight: 8,
+  },
+  filterText: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  // Scroll to top FAB styles
+  scrollToTopFab: {
+    position: "absolute",
+    right: 36,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
   },
 });
