@@ -23,7 +23,7 @@ export default function AboutScreen() {
         <ThemedView style={styles.contentContainer}>
           <ThemedView style={styles.appInfoContainer}>
             <ThemedText style={[styles.appName, { color: textColor }]}>
-              Distilt™
+              Distilt Video™
             </ThemedText>
             <ThemedText
               style={[styles.appVersion, { color: secondaryTextColor }]}

@@ -30,7 +30,7 @@ export default function RootLayout() {
             <Stack>
               <Stack.Screen
                 name="(tabs)"
-                options={{ headerShown: false, headerTitle: "Distilt" }}
+                options={{ headerShown: false, headerTitle: "" }}
               />
               <Stack.Screen
                 name="about"
