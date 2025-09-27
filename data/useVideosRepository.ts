@@ -233,6 +233,54 @@ export function useVideosRepository() {
     [db]
   );
 
+  /**
+   * Update video watch progress
+   */
+  const updateVideoProgress = useCallback(
+    async (videoId: string, progressSeconds: number): Promise<void> => {
+      try {
+        const now = new Date().toISOString();
+        await db
+          .update(videos)
+          .set({
+            watchProgress: progressSeconds.toString(),
+            updatedAt: now,
+          })
+          .where(eq(videos.id, videoId));
+
+        console.log(`Updated video ${videoId} progress to ${progressSeconds}s`);
+      } catch (error) {
+        console.error(`Error updating video progress for ${videoId}:`, error);
+      }
+    },
+    [db]
+  );
+
+  /**
+   * Get video watch progress
+   */
+  const getVideoProgress = useCallback(
+    async (videoId: string): Promise<number | null> => {
+      try {
+        const result = await db
+          .select({ watchProgress: videos.watchProgress })
+          .from(videos)
+          .where(eq(videos.id, videoId))
+          .limit(1);
+
+        if (result.length === 0 || !result[0].watchProgress) {
+          return null;
+        }
+
+        return parseFloat(result[0].watchProgress);
+      } catch (error) {
+        console.error(`Error getting video progress for ${videoId}:`, error);
+        return null;
+      }
+    },
+    [db]
+  );
+
   return {
     getAllVideos,
     getVideosByChannels,
@@ -240,5 +288,7 @@ export function useVideosRepository() {
     upsertVideos,
     getVideoCountByChannel,
     deleteOldVideos,
+    updateVideoProgress,
+    getVideoProgress,
   };
 }
