@@ -13,10 +13,7 @@ export default function SettingsScreen() {
   // Theme colors
   const backgroundColor = useThemeColor({}, "background");
   const textColor = useThemeColor({}, "text");
-  const secondaryTextColor = useThemeColor(
-    { light: "#8e8e93", dark: "#8e8e93" },
-    "text"
-  );
+  const secondaryTextColor = useThemeColor({}, "icon");
 
   // Animation values
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -204,33 +201,6 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: "100%",
   },
-  // Settings button styles
-  settingsButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-  buttonContent: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  buttonText: {
-    marginLeft: 12,
-  },
-  sectionSpacer: {},
-  placeholderText: {
-    fontSize: 16,
-    paddingVertical: 4,
-  },
-
-  scrollContainer: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-  },
-
   appInfoContainer: {
     alignItems: "center",
     flex: 1,
@@ -245,29 +215,5 @@ const styles = StyleSheet.create({
   },
   appVersion: {
     fontSize: 16,
-  },
-  descriptionContainer: {
-    paddingBottom: 24,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#3c3c43",
-  },
-  description: {
-    fontSize: 16,
-    lineHeight: 24,
-    textAlign: "center",
-  },
-  infoSection: {
-    paddingVertical: 24,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#3c3c43",
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 8,
-  },
-  sectionText: {
-    fontSize: 16,
-    lineHeight: 24,
   },
 });
