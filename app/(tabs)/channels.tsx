@@ -37,7 +37,8 @@ import { GlassView } from "expo-glass-effect";
 function RightAction(
   prog: SharedValue<number>,
   drag: SharedValue<number>,
-  onDelete: () => void
+  onDelete: () => void,
+  backgroundColor: string
 ) {
   const styleAnimation = useAnimatedStyle(() => {
     // Create a smooth animation that keeps the delete area visible
@@ -55,7 +56,7 @@ function RightAction(
     <Reanimated.View style={[styleAnimation]}>
       <GlassView
         glassEffectStyle="regular"
-        style={[styles.deleteButton, styles.rightAction]}
+        style={[styles.deleteButton, styles.rightAction, { backgroundColor }]}
       >
         <TouchableOpacity onPress={onDelete}>
           <Ionicons name="trash" size={20} color="#FFFFFF" />
@@ -74,6 +75,7 @@ const SwipeableChannelItem = ({
   secondaryTextColor,
   cardBackgroundColor,
   borderColor,
+  buttonColor,
   onSwipeableRef,
 }: {
   channel: Channels;
@@ -83,6 +85,7 @@ const SwipeableChannelItem = ({
   secondaryTextColor: string;
   cardBackgroundColor: string;
   borderColor: string;
+  buttonColor: string;
   onSwipeableRef: (id: string, ref: SwipeableMethods | null) => void;
 }) => {
   const swipeableRef = useRef<SwipeableMethods>(null);
@@ -105,7 +108,7 @@ const SwipeableChannelItem = ({
     prog: SharedValue<number>,
     drag: SharedValue<number>
   ) => {
-    return RightAction(prog, drag, handleDeletePress);
+    return RightAction(prog, drag, handleDeletePress, buttonColor);
   };
 
   return (
@@ -178,10 +181,7 @@ export default function ChannelsScreen() {
     { light: "#8e8e93", dark: "#8e8e93" },
     "text"
   );
-  const buttonColor = useThemeColor(
-    { light: "#FF3B30", dark: "#FF453A" },
-    "tint"
-  );
+  const buttonColor = useThemeColor({}, "tint");
 
   // Header animations
   const headerHeight = scrollY.interpolate({
@@ -558,6 +558,7 @@ export default function ChannelsScreen() {
                   secondaryTextColor={secondaryTextColor}
                   cardBackgroundColor={cardBackgroundColor}
                   borderColor={borderColor}
+                  buttonColor={buttonColor}
                   onSwipeableRef={handleSwipeableRef}
                 />
               ))}
@@ -768,7 +769,6 @@ const styles = StyleSheet.create({
   },
   rightAction: {
     width: 60,
-    backgroundColor: "#FF3B30",
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 28,
