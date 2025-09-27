@@ -9,6 +9,8 @@ import React, {
   useState,
 } from "react";
 import {
+  ActionSheetIOS,
+  Alert,
   Animated,
   Image,
   Platform,
@@ -28,15 +30,22 @@ import { useVideoRefresh } from "@/contexts/videoRefreshContext";
 import { channels } from "@/data/schema";
 import { useChannelsRepository } from "@/data/useChannelsRepository";
 import { useDb } from "@/data/useDb";
+import { useVideosRepository } from "@/data/useVideosRepository";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useVideos } from "@/services/videoService";
 import { YouTubeVideo } from "@/services/youtubeService";
+import {
+  filterUnwatchedVideos,
+  getVideoProgressPercentage,
+  isVideoWatched,
+} from "@/utils/videoUtils";
 
 // Memoized video item component for performance
 const VideoItem = React.memo(
   ({
     item,
     onPress,
+    onLongPress,
     textColor,
     secondaryTextColor,
     cardBackgroundColor,
@@ -45,6 +54,7 @@ const VideoItem = React.memo(
   }: {
     item: YouTubeVideo;
     onPress: (video: YouTubeVideo) => void;
+    onLongPress: (video: YouTubeVideo) => void;
     textColor: string;
     secondaryTextColor: string;
     cardBackgroundColor: string;
@@ -52,19 +62,25 @@ const VideoItem = React.memo(
     glassStyle: GlassStyle;
   }) => {
     // Calculate progress percentage (0.0 to 1.0)
-    const progressPercentage =
-      item.duration && item.duration > 0 && item.watchProgress
-        ? Math.min(item.watchProgress / item.duration, 1.0)
-        : 0;
+    const progressPercentage = getVideoProgressPercentage(item);
+
+    // Check if video is watched
+    const watched = isVideoWatched(item);
 
     return (
       <TouchableOpacity
-        style={styles.videoItem}
+        style={[styles.videoItem, watched && styles.watchedVideoItem]}
         onPress={() => onPress(item)}
+        onLongPress={() => onLongPress(item)}
         activeOpacity={0.7}
       >
         <ThemedView style={styles.videoCard}>
-          <Image source={{ uri: item.img }} style={styles.videoImage} />
+          <View style={styles.imageContainer}>
+            <Image
+              source={{ uri: item.img }}
+              style={[styles.videoImage, watched && styles.watchedVideoImage]}
+            />
+          </View>
 
           {/* Progress bar */}
           {progressPercentage > 0 && (
@@ -91,7 +107,10 @@ const VideoItem = React.memo(
             style={[styles.videoInfo, { backgroundColor: cardBackgroundColor }]}
           >
             <ThemedText
-              style={[styles.videoTitle, { color: textColor }]}
+              style={[
+                styles.videoTitle,
+                { color: watched ? secondaryTextColor : textColor },
+              ]}
               numberOfLines={2}
             >
               {item.title}
@@ -115,6 +134,7 @@ VideoItem.displayName = "VideoItem";
 const FilterButton = React.memo(
   ({
     title,
+    icon,
     isSelected,
     onPress,
     tintColor,
@@ -122,7 +142,8 @@ const FilterButton = React.memo(
     cardBackgroundColor,
     glassEffectStyle,
   }: {
-    title: string;
+    title?: string;
+    icon?: keyof typeof Ionicons.glyphMap;
     isSelected: boolean;
     onPress: () => void;
     tintColor: string;
@@ -141,16 +162,24 @@ const FilterButton = React.memo(
       glassEffectStyle={glassEffectStyle}
     >
       <Pressable onPress={onPress}>
-        <ThemedText
-          style={[
-            styles.filterText,
-            {
-              color: isSelected ? "#FFFFFF" : textColor,
-            },
-          ]}
-        >
-          {title}
-        </ThemedText>
+        {icon ? (
+          <Ionicons
+            name={icon}
+            size={24}
+            color={isSelected ? "#FFFFFF" : textColor}
+          />
+        ) : (
+          <ThemedText
+            style={[
+              styles.filterText,
+              {
+                color: isSelected ? "#FFFFFF" : textColor,
+              },
+            ]}
+          >
+            {title}
+          </ThemedText>
+        )}
       </Pressable>
     </GlassView>
   )
@@ -158,12 +187,14 @@ const FilterButton = React.memo(
 
 FilterButton.displayName = "FilterButton";
 
-// Memoized filter list component
+// Memoized filter list component with integrated watched filter
 const ChannelFilterList = React.memo(
   ({
     channelList,
     selectedChannel,
     onChannelSelect,
+    showUnwatchedOnly,
+    onWatchedFilterToggle,
     tintColor,
     textColor,
     cardBackgroundColor,
@@ -172,6 +203,8 @@ const ChannelFilterList = React.memo(
     channelList: { id: string; title: string }[];
     selectedChannel: string;
     onChannelSelect: (channel: string) => void;
+    showUnwatchedOnly: boolean;
+    onWatchedFilterToggle: () => void;
     tintColor: string;
     textColor: string;
     cardBackgroundColor: string;
@@ -187,6 +220,18 @@ const ChannelFilterList = React.memo(
         style={styles.filterContainer}
         contentContainerStyle={styles.filterContentContainer}
       >
+        {/* Filter toggle button first */}
+        <FilterButton
+          icon="filter"
+          isSelected={showUnwatchedOnly}
+          onPress={onWatchedFilterToggle}
+          tintColor={tintColor}
+          textColor={textColor}
+          cardBackgroundColor={cardBackgroundColor}
+          glassEffectStyle={glassEffectStyle}
+        />
+
+        {/* All button */}
         <FilterButton
           title="All"
           isSelected={selectedChannel === "All"}
@@ -196,6 +241,8 @@ const ChannelFilterList = React.memo(
           cardBackgroundColor={cardBackgroundColor}
           glassEffectStyle={glassEffectStyle}
         />
+
+        {/* Channel buttons */}
         {channelList.length > 0 &&
           channelList.map((channel) => (
             <FilterButton
@@ -233,9 +280,11 @@ export default function HomeScreen() {
     { id: string; title: string }[]
   >([]);
   const [selectedChannel, setSelectedChannel] = useState<string>("All");
+  const [showUnwatchedOnly, setShowUnwatchedOnly] = useState<boolean>(true);
   const [showScrollToTop, setShowScrollToTop] = useState(false);
   const { getVideos, refreshVideos } = useVideos();
   const { getChannels } = useChannelsRepository();
+  const { markVideoAsWatched, markVideoAsUnwatched } = useVideosRepository();
   const { shouldRefresh, resetRefreshTrigger } = useVideoRefresh();
   const { db } = useDb();
 
@@ -288,12 +337,120 @@ export default function HomeScreen() {
     );
   }, []);
 
+  // Handle long press for video actions
+  const handleVideoLongPress = useCallback(
+    async (video: YouTubeVideo) => {
+      const watched = isVideoWatched(video);
+      const actionTitle = watched ? "Mark as Unwatched" : "Mark as Watched";
+
+      const markAsWatched = async () => {
+        try {
+          await markVideoAsWatched(video.id);
+          // Refresh the video list to show updated status
+          const videos = await getVideos();
+          const sortedVideos = videos.sort(
+            (a, b) => b.dateTime.getTime() - a.dateTime.getTime()
+          );
+          setVideoList(sortedVideos);
+        } catch (error) {
+          console.error("Error marking video as watched:", error);
+          Alert.alert("Error", "Failed to mark video as watched");
+        }
+      };
+
+      const markAsUnwatched = async () => {
+        try {
+          await markVideoAsUnwatched(video.id);
+          // Refresh the video list to show updated status
+          const videos = await getVideos();
+          const sortedVideos = videos.sort(
+            (a, b) => b.dateTime.getTime() - a.dateTime.getTime()
+          );
+          setVideoList(sortedVideos);
+        } catch (error) {
+          console.error("Error marking video as unwatched:", error);
+          Alert.alert("Error", "Failed to mark video as unwatched");
+        }
+      };
+
+      if (Platform.OS === "ios") {
+        ActionSheetIOS.showActionSheetWithOptions(
+          {
+            options: ["Cancel", actionTitle],
+            cancelButtonIndex: 0,
+          },
+          (buttonIndex) => {
+            if (buttonIndex === 1) {
+              if (watched) {
+                markAsUnwatched();
+              } else {
+                markAsWatched();
+              }
+            }
+          }
+        );
+      } else {
+        // Android fallback
+        Alert.alert(
+          "Video Actions",
+          `What would you like to do with "${video.title}"?`,
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: actionTitle,
+              onPress: () => {
+                if (watched) {
+                  markAsUnwatched();
+                } else {
+                  markAsWatched();
+                }
+              },
+            },
+          ]
+        );
+      }
+    },
+    [markVideoAsWatched, markVideoAsUnwatched, getVideos]
+  );
+
   // Memoize the keyExtractor function
   const keyExtractor = useCallback((item: YouTubeVideo) => item.id, []);
 
   // Memoize the onChannelSelect callback
   const onChannelSelect = useCallback((channel: string) => {
     setSelectedChannel(channel);
+  }, []);
+
+  // Handle watched filter toggle
+  const handleWatchedFilterToggle = useCallback(() => {
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ["Cancel", "All", "Unwatched"],
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            setShowUnwatchedOnly(false);
+          } else if (buttonIndex === 2) {
+            setShowUnwatchedOnly(true);
+          }
+        }
+      );
+    } else {
+      // Android fallback
+      Alert.alert("Filter Videos", "Choose which videos to display:", [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "All",
+          onPress: () => setShowUnwatchedOnly(false),
+        },
+        {
+          text: "Unwatched",
+          onPress: () => setShowUnwatchedOnly(true),
+        },
+      ]);
+    }
   }, []);
 
   const [glassStyle, setGlassStyle] = useState<GlassStyle>("regular");
@@ -309,6 +466,7 @@ export default function HomeScreen() {
       <VideoItem
         item={item}
         onPress={openVideo}
+        onLongPress={handleVideoLongPress}
         textColor={textColor}
         secondaryTextColor={secondaryTextColor}
         cardBackgroundColor={cardBackgroundColor}
@@ -318,6 +476,7 @@ export default function HomeScreen() {
     ),
     [
       openVideo,
+      handleVideoLongPress,
       textColor,
       secondaryTextColor,
       cardBackgroundColor,
@@ -328,11 +487,22 @@ export default function HomeScreen() {
 
   // Memoize the filtered video list
   const filteredVideoList = useMemo(() => {
-    if (selectedChannel === "All") {
-      return videoList;
+    let filtered = videoList;
+
+    // Apply channel filter
+    if (selectedChannel !== "All") {
+      filtered = filtered.filter(
+        (video) => video.channelTitle === selectedChannel
+      );
     }
-    return videoList.filter((video) => video.channelTitle === selectedChannel);
-  }, [videoList, selectedChannel]);
+
+    // Apply watched filter
+    if (showUnwatchedOnly) {
+      filtered = filterUnwatchedVideos(filtered);
+    }
+
+    return filtered;
+  }, [videoList, selectedChannel, showUnwatchedOnly]);
 
   // Load videos on component mount
   useEffect(() => {
@@ -549,15 +719,17 @@ export default function HomeScreen() {
             <ThemedText style={[styles.largeTitle, { color: textColor }]}>
               Videos
             </ThemedText>
-            {/* Channel Filter Buttons - optimized memoized component */}
+
+            {/* Channel Filter with integrated watched filter */}
             <ChannelFilterList
               channelList={channelList}
               selectedChannel={selectedChannel}
               onChannelSelect={onChannelSelect}
+              showUnwatchedOnly={showUnwatchedOnly}
+              onWatchedFilterToggle={handleWatchedFilterToggle}
               tintColor={tintColor}
               textColor={textColor}
               cardBackgroundColor={cardBackgroundColor}
-              // Use regular glass when dark mode
               glassEffectStyle={glassStyle}
             />
           </Animated.View>
@@ -652,6 +824,9 @@ const styles = StyleSheet.create({
   videoItem: {
     marginBottom: 16,
   },
+  watchedVideoItem: {
+    opacity: 0.7,
+  },
   videoCard: {
     borderRadius: 12,
     overflow: "hidden",
@@ -668,10 +843,40 @@ const styles = StyleSheet.create({
       },
     }),
   },
+  imageContainer: {
+    position: "relative",
+  },
   videoImage: {
     width: "100%",
     aspectRatio: 16 / 9,
     backgroundColor: "transparent",
+  },
+  watchedVideoImage: {
+    opacity: 0.6,
+  },
+  watchedOverlay: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    zIndex: 1,
+  },
+  watchedBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.3,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   progressBarContainer: {
     width: "100%",
