@@ -182,10 +182,7 @@ export default function HomeScreen() {
     { light: "#f2f2f7", dark: "#1a1a1c" },
     "background"
   );
-  const secondaryTextColor = useThemeColor(
-    { light: "#8e8e93", dark: "#8e8e93" },
-    "text"
-  );
+  const secondaryTextColor = useThemeColor({}, "icon");
 
   const insets = useSafeAreaInsets();
   const [videoList, setVideoList] = useState<YouTubeVideo[]>([]);
@@ -582,11 +579,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.41,
     lineHeight: 42,
   },
-  loadingText: {
-    fontSize: 16,
-    marginTop: 8,
-    fontStyle: "italic",
-  },
   // List styles
   listContainer: {
     paddingHorizontal: 20,
@@ -614,7 +606,7 @@ const styles = StyleSheet.create({
   videoImage: {
     width: "100%",
     aspectRatio: 16 / 9,
-    backgroundColor: "#f2f2f7",
+    backgroundColor: "transparent",
   },
   videoInfo: {
     padding: 12,
