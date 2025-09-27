@@ -28,6 +28,7 @@ export function useVideosRepository() {
         channelTitle: videoFromDb.channelTitle,
         channelId: videoFromDb.channelId || "unknown",
         watchProgress: videoFromDb.watchProgress,
+        duration: videoFromDb.duration,
       }));
     } catch (error) {
       console.error("Error fetching videos from database:", error);
@@ -57,6 +58,7 @@ export function useVideosRepository() {
           channelTitle: videoFromDb.channelTitle,
           channelId: videoFromDb.channelId || "unknown",
           watchProgress: videoFromDb.watchProgress,
+          duration: videoFromDb.duration,
         }));
       } catch (error) {
         console.error(
@@ -158,6 +160,7 @@ export function useVideosRepository() {
               dateTime: video.dateTime.toISOString(),
               channelId: video.channelId,
               channelTitle: video.channelTitle,
+              duration: video.duration || 0,
               createdAt: now,
               updatedAt: now,
             }))
@@ -175,6 +178,7 @@ export function useVideosRepository() {
                 img: video.img,
                 dateTime: video.dateTime.toISOString(),
                 channelTitle: video.channelTitle,
+                duration: video.duration || 0,
                 updatedAt: now,
               })
               .where(eq(videos.id, video.id));
@@ -260,6 +264,30 @@ export function useVideosRepository() {
   );
 
   /**
+   * Update video duration
+   */
+  const updateVideoDuration = useCallback(
+    async (videoId: string, durationSeconds: number): Promise<void> => {
+      try {
+        console.log(
+          `Updating video ${videoId} duration to ${durationSeconds}s`
+        );
+        await db
+          .update(videos)
+          .set({
+            duration: durationSeconds,
+          })
+          .where(eq(videos.id, videoId));
+
+        console.log(`Updated video ${videoId} duration to ${durationSeconds}s`);
+      } catch (error) {
+        console.error(`Error updating video duration for ${videoId}:`, error);
+      }
+    },
+    [db]
+  );
+
+  /**
    * Get video watch progress
    */
   const getVideoProgress = useCallback(
@@ -292,6 +320,7 @@ export function useVideosRepository() {
     getVideoCountByChannel,
     deleteOldVideos,
     updateVideoProgress,
+    updateVideoDuration,
     getVideoProgress,
   };
 }

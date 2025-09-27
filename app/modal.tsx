@@ -24,7 +24,7 @@ export default function ModalScreen() {
   const backgroundColor = useThemeColor({}, "background");
   const textColor = useThemeColor({}, "text");
   const tintColor = useThemeColor({}, "tint");
-  const { updateVideoProgress } = useVideosRepository();
+  const { updateVideoProgress, updateVideoDuration } = useVideosRepository();
   const { triggerVideoRefresh } = useVideoRefresh();
 
   // Reset refresh trigger when modal closes (including swipe down) to ensure the main list refreshes
@@ -83,10 +83,18 @@ export default function ModalScreen() {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === "progress" && videoId) {
         const newProgress = Math.round(data.currentTime);
-        console.log(`[Modal] Received video progress: ${newProgress}s`);
+        const duration = Math.round(data.duration);
+        console.log(
+          `[Modal] Received video progress: ${newProgress}s / ${duration}s`
+        );
 
         // Update progress in database
         updateVideoProgress(videoId, newProgress);
+
+        // Update duration in database (only if we have a valid duration)
+        if (duration > 0) {
+          updateVideoDuration(videoId, duration);
+        }
       }
     } catch (error) {
       console.log("Error parsing WebView message:", error);

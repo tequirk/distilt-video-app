@@ -8,6 +8,7 @@ export interface YouTubeVideo {
   channelTitle: string;
   channelId: string;
   watchProgress: number | null;
+  duration: number | null; // Duration in seconds
 }
 
 interface RSSEntry {
@@ -98,6 +99,7 @@ export async function fetchChannelVideos(
         channelTitle: entry.author.name,
         channelId: entry["yt:channelId"],
         watchProgress: null,
+        duration: null, // Duration will be captured when video is played
       })
     );
 

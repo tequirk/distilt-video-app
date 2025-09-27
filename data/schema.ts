@@ -35,6 +35,7 @@ export const videos = sqliteTable(
     channelId: text("channelId").references(() => channels.id),
     channelTitle: text("channelTitle").notNull(), // Denormalized for easier queries
     watchProgress: integer("watchProgress").notNull().default(0), // Store watch progress in seconds as string (can be null)
+    duration: integer("duration").notNull().default(0), // Store video duration in seconds
     createdAt: text("createdAt")
       .notNull()
       .$defaultFn(() => new Date().toISOString()), // When we first stored this video
