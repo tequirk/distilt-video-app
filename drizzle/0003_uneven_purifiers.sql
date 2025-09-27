@@ -1,0 +1,1 @@
+ALTER TABLE `videos` ADD `duration` integer DEFAULT 0 NOT NULL;

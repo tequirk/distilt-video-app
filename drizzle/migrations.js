@@ -2,11 +2,17 @@
 
 import journal from './meta/_journal.json';
 import m0000 from './0000_aberrant_roland_deschain.sql';
+import m0001 from './0001_omniscient_omega_red.sql';
+import m0002 from './0002_sour_shocker.sql';
+import m0003 from './0003_uneven_purifiers.sql';
 
   export default {
     journal,
     migrations: {
-      m0000
+      m0000,
+m0001,
+m0002,
+m0003
     }
   }
   

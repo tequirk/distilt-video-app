@@ -18,6 +18,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   useColorScheme,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -39,39 +40,73 @@ const VideoItem = React.memo(
     textColor,
     secondaryTextColor,
     cardBackgroundColor,
+    tintColor,
+    glassStyle,
   }: {
     item: YouTubeVideo;
     onPress: (video: YouTubeVideo) => void;
     textColor: string;
     secondaryTextColor: string;
     cardBackgroundColor: string;
-  }) => (
-    <TouchableOpacity
-      style={styles.videoItem}
-      onPress={() => onPress(item)}
-      activeOpacity={0.7}
-    >
-      <ThemedView style={styles.videoCard}>
-        <Image source={{ uri: item.img }} style={styles.videoImage} />
-        <ThemedView
-          style={[styles.videoInfo, { backgroundColor: cardBackgroundColor }]}
-        >
-          <ThemedText
-            style={[styles.videoTitle, { color: textColor }]}
-            numberOfLines={2}
+    tintColor: string;
+    glassStyle: GlassStyle;
+  }) => {
+    // Calculate progress percentage (0.0 to 1.0)
+    const progressPercentage =
+      item.duration && item.duration > 0 && item.watchProgress
+        ? Math.min(item.watchProgress / item.duration, 1.0)
+        : 0;
+
+    return (
+      <TouchableOpacity
+        style={styles.videoItem}
+        onPress={() => onPress(item)}
+        activeOpacity={0.7}
+      >
+        <ThemedView style={styles.videoCard}>
+          <Image source={{ uri: item.img }} style={styles.videoImage} />
+
+          {/* Progress bar */}
+          {progressPercentage > 0 && (
+            <View
+              style={[
+                styles.progressBarContainer,
+                { backgroundColor: cardBackgroundColor },
+              ]}
+            >
+              <GlassView
+                style={[
+                  styles.progressBarFill,
+                  {
+                    width: `${progressPercentage * 100}%`,
+                    backgroundColor: tintColor,
+                  },
+                ]}
+                glassEffectStyle={glassStyle}
+              />
+            </View>
+          )}
+
+          <ThemedView
+            style={[styles.videoInfo, { backgroundColor: cardBackgroundColor }]}
           >
-            {item.title}
-          </ThemedText>
-          <ThemedText
-            style={[styles.channelTitle, { color: secondaryTextColor }]}
-            numberOfLines={1}
-          >
-            {item.channelTitle}
-          </ThemedText>
+            <ThemedText
+              style={[styles.videoTitle, { color: textColor }]}
+              numberOfLines={2}
+            >
+              {item.title}
+            </ThemedText>
+            <ThemedText
+              style={[styles.channelTitle, { color: secondaryTextColor }]}
+              numberOfLines={1}
+            >
+              {item.channelTitle}
+            </ThemedText>
+          </ThemedView>
         </ThemedView>
-      </ThemedView>
-    </TouchableOpacity>
-  )
+      </TouchableOpacity>
+    );
+  }
 );
 
 VideoItem.displayName = "VideoItem";
@@ -244,23 +279,14 @@ export default function HomeScreen() {
 
   // Memoize the openVideo callback
   const openVideo = useCallback((video: YouTubeVideo) => {
+    console.log(
+      `[Home] Opening video ID: ${video.id} with: ${video.watchProgress}`
+    );
     const encodedTitle = encodeURIComponent(video.title);
-    router.push(`/modal?videoId=${video.id}&title=${encodedTitle}`);
+    router.push(
+      `/modal?videoId=${video.id}&title=${encodedTitle}&watchProgress=${video.watchProgress}`
+    );
   }, []);
-
-  // Memoize the renderVideoItem function
-  const renderVideoItem = useCallback(
-    ({ item }: { item: YouTubeVideo }) => (
-      <VideoItem
-        item={item}
-        onPress={openVideo}
-        textColor={textColor}
-        secondaryTextColor={secondaryTextColor}
-        cardBackgroundColor={cardBackgroundColor}
-      />
-    ),
-    [openVideo, textColor, secondaryTextColor, cardBackgroundColor]
-  );
 
   // Memoize the keyExtractor function
   const keyExtractor = useCallback((item: YouTubeVideo) => item.id, []);
@@ -276,6 +302,29 @@ export default function HomeScreen() {
   useEffect(() => {
     setGlassStyle((colorScheme === "dark" ? "regular" : "glass") as GlassStyle);
   }, [colorScheme]);
+
+  // Memoize the renderVideoItem function (after glassStyle is defined)
+  const renderVideoItem = useCallback(
+    ({ item }: { item: YouTubeVideo }) => (
+      <VideoItem
+        item={item}
+        onPress={openVideo}
+        textColor={textColor}
+        secondaryTextColor={secondaryTextColor}
+        cardBackgroundColor={cardBackgroundColor}
+        tintColor={tintColor}
+        glassStyle={glassStyle}
+      />
+    ),
+    [
+      openVideo,
+      textColor,
+      secondaryTextColor,
+      cardBackgroundColor,
+      tintColor,
+      glassStyle,
+    ]
+  );
 
   // Memoize the filtered video list
   const filteredVideoList = useMemo(() => {
@@ -333,6 +382,7 @@ export default function HomeScreen() {
   // Listen for channel changes and refresh videos
   useEffect(() => {
     if (shouldRefresh) {
+      console.log("Channel change detected, refreshing videos...");
       const refreshFromChannelChange = async () => {
         setRefreshing(true);
         try {
@@ -479,7 +529,8 @@ export default function HomeScreen() {
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          // Don't animate the pull down on every load. Only on user pull.
+          <RefreshControl refreshing={false} onRefresh={onRefresh} />
         }
         removeClippedSubviews={true}
         maxToRenderPerBatch={10}
@@ -621,6 +672,15 @@ const styles = StyleSheet.create({
     width: "100%",
     aspectRatio: 16 / 9,
     backgroundColor: "transparent",
+  },
+  progressBarContainer: {
+    width: "100%",
+    height: 4,
+  },
+  progressBarFill: {
+    height: "100%",
+    borderRadius: 0,
+    overflow: "hidden",
   },
   videoInfo: {
     padding: 12,

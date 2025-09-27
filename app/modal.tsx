@@ -1,6 +1,6 @@
 import Constants from "expo-constants";
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Platform,
   StatusBar,
@@ -11,19 +11,94 @@ import { WebView } from "react-native-webview";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { useVideoRefresh } from "@/contexts/videoRefreshContext";
+import { useVideosRepository } from "@/data/useVideosRepository";
 import { useThemeColor } from "@/hooks/use-theme-color";
 
 export default function ModalScreen() {
-  const { videoId, title } = useLocalSearchParams<{
+  const { videoId, title, watchProgress } = useLocalSearchParams<{
     videoId?: string;
     title?: string;
+    watchProgress?: string;
   }>();
   const backgroundColor = useThemeColor({}, "background");
   const textColor = useThemeColor({}, "text");
   const tintColor = useThemeColor({}, "tint");
+  const { updateVideoProgress, updateVideoDuration } = useVideosRepository();
+  const { triggerVideoRefresh } = useVideoRefresh();
+
+  // Reset refresh trigger when modal closes (including swipe down) to ensure the main list refreshes
+  // with fresh data, including watch progress updates.
+  useEffect(() => {
+    return () => {
+      console.log("[Modal] Modal closed, resetting refresh trigger");
+      triggerVideoRefresh();
+    };
+  }, [triggerVideoRefresh]);
 
   const handleGoBack = () => {
     router.back();
+  };
+
+  // JavaScript injection to track video progress
+  const injectedJavaScript = `
+    function trackVideoProgress() {
+      try {
+        const video = document.querySelector('video');
+        if (video && !isNaN(video.currentTime)) {
+          const currentTime = video.currentTime;
+          const duration = video.duration || 0;
+          
+          // Send message to React Native
+          if (window.ReactNativeWebView) {
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'progress',
+              currentTime: currentTime,
+              duration: duration
+            }));
+          }
+        }
+      } catch (error) {
+        console.log('[Video Progress] Error: ' + error.message);
+      }
+    }
+    
+    // Start tracking when page is ready
+    function startTracking() {
+      // Track every 5 seconds
+      setInterval(trackVideoProgress, 5000);
+    }
+    
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', startTracking);
+    } else {
+      startTracking();
+    }
+    
+    true;
+  `;
+
+  const handleMessage = (event: any) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      if (data.type === "progress" && videoId) {
+        const newProgress = Math.round(data.currentTime);
+        const duration = Math.round(data.duration);
+        console.log(
+          `[Modal] Received video progress: ${newProgress}s / ${duration}s`
+        );
+
+        // Update progress in database
+        updateVideoProgress(videoId, newProgress);
+
+        // Update duration in database (only if we have a valid duration)
+        if (duration > 0) {
+          updateVideoDuration(videoId, duration);
+        }
+      }
+    } catch (error) {
+      console.log("Error parsing WebView message:", error);
+    }
   };
 
   // If no videoId, show default modal content
@@ -43,7 +118,9 @@ export default function ModalScreen() {
     );
   }
 
-  const youtubeUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&fs=1&modestbranding=1&rel=0`;
+  console.log(`[Modal] Playing video ID: ${videoId} from ${watchProgress}s`);
+
+  const youtubeUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&fs=1&modestbranding=1&rel=0&start=${watchProgress}`;
 
   return (
     <ThemedView style={[styles.videoContainer, { backgroundColor: "#000" }]}>
@@ -66,6 +143,8 @@ export default function ModalScreen() {
         scalesPageToFit={true}
         mixedContentMode="compatibility"
         allowsInlineMediaPlayback={true}
+        injectedJavaScript={injectedJavaScript}
+        onMessage={handleMessage}
         {...(Platform.OS === "ios" && {
           allowsLinkPreview: false,
           dataDetectorTypes: "none",
