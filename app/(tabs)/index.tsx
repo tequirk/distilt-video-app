@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
 import { GlassView } from "expo-glass-effect";
 import { router } from "expo-router";
 import React, {
@@ -421,7 +420,7 @@ export default function HomeScreen() {
             },
           ]}
         />
-        {/* Blur background when scrolling */}
+        {/* Glass background when scrolling */}
         <Animated.View
           style={[
             StyleSheet.absoluteFillObject,
@@ -430,9 +429,8 @@ export default function HomeScreen() {
             },
           ]}
         >
-          <BlurView
-            intensity={50}
-            tint="systemMaterial"
+          <GlassView
+            glassEffectStyle="regular"
             style={StyleSheet.absoluteFillObject}
           />
         </Animated.View>
