@@ -7,6 +7,7 @@ export interface YouTubeVideo {
   dateTime: Date;
   channelTitle: string;
   channelId: string;
+  watchProgress: number | null;
 }
 
 interface RSSEntry {
@@ -96,6 +97,7 @@ export async function fetchChannelVideos(
         dateTime: new Date(entry.published),
         channelTitle: entry.author.name,
         channelId: entry["yt:channelId"],
+        watchProgress: null,
       })
     );
 

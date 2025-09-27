@@ -244,8 +244,13 @@ export default function HomeScreen() {
 
   // Memoize the openVideo callback
   const openVideo = useCallback((video: YouTubeVideo) => {
+    console.log(
+      `[Home] Opening video ID: ${video.id} with: ${video.watchProgress}`
+    );
     const encodedTitle = encodeURIComponent(video.title);
-    router.push(`/modal?videoId=${video.id}&title=${encodedTitle}`);
+    router.push(
+      `/modal?videoId=${video.id}&title=${encodedTitle}&watchProgress=${video.watchProgress}`
+    );
   }, []);
 
   // Memoize the renderVideoItem function
@@ -333,6 +338,7 @@ export default function HomeScreen() {
   // Listen for channel changes and refresh videos
   useEffect(() => {
     if (shouldRefresh) {
+      console.log("Channel change detected, refreshing videos...");
       const refreshFromChannelChange = async () => {
         setRefreshing(true);
         try {
@@ -479,7 +485,8 @@ export default function HomeScreen() {
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          // Don't animate the pull down on every load. Only on user pull.
+          <RefreshControl refreshing={false} onRefresh={onRefresh} />
         }
         removeClippedSubviews={true}
         maxToRenderPerBatch={10}

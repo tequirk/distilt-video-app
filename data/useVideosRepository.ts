@@ -27,6 +27,7 @@ export function useVideosRepository() {
         dateTime: new Date(videoFromDb.dateTime),
         channelTitle: videoFromDb.channelTitle,
         channelId: videoFromDb.channelId || "unknown",
+        watchProgress: videoFromDb.watchProgress,
       }));
     } catch (error) {
       console.error("Error fetching videos from database:", error);
@@ -55,6 +56,7 @@ export function useVideosRepository() {
           dateTime: new Date(videoFromDb.dateTime),
           channelTitle: videoFromDb.channelTitle,
           channelId: videoFromDb.channelId || "unknown",
+          watchProgress: videoFromDb.watchProgress,
         }));
       } catch (error) {
         console.error(
@@ -239,12 +241,13 @@ export function useVideosRepository() {
   const updateVideoProgress = useCallback(
     async (videoId: string, progressSeconds: number): Promise<void> => {
       try {
-        const now = new Date().toISOString();
+        console.log(
+          `Updating video ${videoId} progress to ${progressSeconds}s`
+        );
         await db
           .update(videos)
           .set({
-            watchProgress: progressSeconds.toString(),
-            updatedAt: now,
+            watchProgress: progressSeconds,
           })
           .where(eq(videos.id, videoId));
 
@@ -272,7 +275,7 @@ export function useVideosRepository() {
           return null;
         }
 
-        return parseFloat(result[0].watchProgress);
+        return result[0].watchProgress;
       } catch (error) {
         console.error(`Error getting video progress for ${videoId}:`, error);
         return null;
