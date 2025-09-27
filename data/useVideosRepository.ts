@@ -1,4 +1,4 @@
-import { desc, eq, inArray, sql } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 import { useCallback } from "react";
 import { YouTubeVideo } from "../services/youtubeService";
 import { videos } from "./schema";
@@ -35,41 +35,6 @@ export function useVideosRepository() {
       return [];
     }
   }, [db]);
-
-  /**
-   * Get videos for specific channels
-   */
-  const getVideosByChannels = useCallback(
-    async (channelIds: string[]): Promise<YouTubeVideo[]> => {
-      try {
-        if (channelIds.length === 0) return [];
-
-        const result = await db
-          .select()
-          .from(videos)
-          .where(inArray(videos.channelId, channelIds))
-          .orderBy(desc(videos.dateTime));
-
-        return result.map((videoFromDb) => ({
-          id: videoFromDb.id,
-          title: videoFromDb.title,
-          img: videoFromDb.img,
-          dateTime: new Date(videoFromDb.dateTime),
-          channelTitle: videoFromDb.channelTitle,
-          channelId: videoFromDb.channelId || "unknown",
-          watchProgress: videoFromDb.watchProgress,
-          duration: videoFromDb.duration,
-        }));
-      } catch (error) {
-        console.error(
-          "Error fetching videos by channels from database:",
-          error
-        );
-        return [];
-      }
-    },
-    [db]
-  );
 
   /**
    * Get the most recent video date for a channel (for incremental sync)
@@ -196,52 +161,6 @@ export function useVideosRepository() {
   /**
    * Get video count by channel
    */
-  const getVideoCountByChannel = useCallback(async (): Promise<
-    { channelTitle: string; count: number }[]
-  > => {
-    try {
-      const result = await db
-        .select({
-          channelTitle: videos.channelTitle,
-          count: sql<number>`count(*)`.as("count"),
-        })
-        .from(videos)
-        .groupBy(videos.channelTitle)
-        .orderBy(desc(sql`count(*)`));
-
-      return result;
-    } catch (error) {
-      console.error("Error getting video count by channel:", error);
-      return [];
-    }
-  }, [db]);
-
-  /**
-   * Delete old videos (cleanup operation)
-   */
-  const deleteOldVideos = useCallback(
-    async (daysToKeep: number = 30): Promise<number> => {
-      try {
-        const cutoffDate = new Date();
-        cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
-
-        const result = await db
-          .delete(videos)
-          .where(sql`${videos.dateTime} < ${cutoffDate.toISOString()}`);
-
-        console.log(`Deleted videos older than ${daysToKeep} days`);
-        return result.changes;
-      } catch (error) {
-        console.error("Error deleting old videos:", error);
-        return 0;
-      }
-    },
-    [db]
-  );
-
-  /**
-   * Update video watch progress
-   */
   const updateVideoProgress = useCallback(
     async (videoId: string, progressSeconds: number): Promise<void> => {
       try {
@@ -290,23 +209,66 @@ export function useVideosRepository() {
   /**
    * Get video watch progress
    */
-  const getVideoProgress = useCallback(
-    async (videoId: string): Promise<number | null> => {
+  const markVideoAsWatched = useCallback(
+    async (videoId: string): Promise<void> => {
       try {
+        // First get the video's current duration
         const result = await db
-          .select({ watchProgress: videos.watchProgress })
+          .select({ duration: videos.duration })
           .from(videos)
           .where(eq(videos.id, videoId))
           .limit(1);
 
-        if (result.length === 0 || !result[0].watchProgress) {
-          return null;
+        if (result.length === 0) {
+          console.error(`Video ${videoId} not found`);
+          return;
         }
 
-        return result[0].watchProgress;
+        const duration = result[0].duration;
+
+        // If duration is 0 or null, set a reasonable default (assume it's watched)
+        const watchProgress = duration > 0 ? duration : 1;
+
+        console.log(
+          `Marking video ${videoId} as watched (progress: ${watchProgress}s)`
+        );
+
+        await db
+          .update(videos)
+          .set({
+            watchProgress: watchProgress,
+            duration: watchProgress,
+            updatedAt: new Date().toISOString(),
+          })
+          .where(eq(videos.id, videoId));
+
+        console.log(`Successfully marked video ${videoId} as watched`);
       } catch (error) {
-        console.error(`Error getting video progress for ${videoId}:`, error);
-        return null;
+        console.error(`Error marking video ${videoId} as watched:`, error);
+      }
+    },
+    [db]
+  );
+
+  /**
+   * Mark a video as unwatched by setting watchProgress to 0
+   */
+  const markVideoAsUnwatched = useCallback(
+    async (videoId: string): Promise<void> => {
+      try {
+        console.log(`Marking video ${videoId} as unwatched (progress: 0s)`);
+
+        await db
+          .update(videos)
+          .set({
+            watchProgress: 0,
+            updatedAt: new Date().toISOString(),
+          })
+          .where(eq(videos.id, videoId));
+
+        console.log(`Successfully marked video ${videoId} as unwatched`);
+      } catch (error) {
+        console.error(`Error marking video ${videoId} as unwatched:`, error);
       }
     },
     [db]
@@ -314,13 +276,11 @@ export function useVideosRepository() {
 
   return {
     getAllVideos,
-    getVideosByChannels,
     getLatestVideoDateForChannel,
     upsertVideos,
-    getVideoCountByChannel,
-    deleteOldVideos,
     updateVideoProgress,
     updateVideoDuration,
-    getVideoProgress,
+    markVideoAsWatched,
+    markVideoAsUnwatched,
   };
 }
