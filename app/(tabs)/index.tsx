@@ -225,7 +225,7 @@ export default function HomeScreen() {
         const channelData = await db.select().from(channels);
         if (channelData.length === 0) {
           // No channels found, navigate to channels tab
-          router.push("/channels");
+          router.push("/(tabs)/channels");
         }
       } catch (error) {
         console.error("Error checking channels:", error);
