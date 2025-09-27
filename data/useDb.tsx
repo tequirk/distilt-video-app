@@ -27,6 +27,8 @@ export function MigrationStatus({
 }) {
   const { success, error } = useMigrations(db, migrations);
 
+  console.log("Migration status - success:", success, "error:", error);
+
   if (error) {
     return (
       <View>

@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "545f5ec1-2e19-4637-920a-0ba5b140f34b",
+  "id": "50cd1eec-2d69-40f9-b3a8-2c6674e55d42",
   "prevId": "5d23eb0c-a791-4549-9a57-780e1228c659",
   "tables": {
     "channels": {
@@ -75,10 +75,19 @@
         },
         "watchProgress": {
           "name": "watchProgress",
-          "type": "text",
+          "type": "integer",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "duration": {
+          "name": "duration",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
         },
         "createdAt": {
           "name": "createdAt",
