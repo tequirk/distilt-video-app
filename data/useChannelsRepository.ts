@@ -18,6 +18,15 @@ export function useChannelsRepository() {
     }
   }, [db]);
 
+  const getActiveChannels = useCallback(async (): Promise<Channels[]> => {
+    try {
+      return await db.select().from(channels).where(eq(channels.paused, 0));
+    } catch (error) {
+      console.error("Error fetching active channels:", error);
+      return [];
+    }
+  }, [db]);
+
   const addChannel = useCallback(
     async (channelId: string, title: string): Promise<boolean> => {
       try {
@@ -63,5 +72,45 @@ export function useChannelsRepository() {
     [db]
   );
 
-  return { getChannels, addChannel, removeChannel, channelExists };
+  const pauseChannel = useCallback(
+    async (channelId: string): Promise<boolean> => {
+      try {
+        await db
+          .update(channels)
+          .set({ paused: 1 })
+          .where(eq(channels.id, channelId));
+        return true;
+      } catch (error) {
+        console.error("Error pausing channel:", error);
+        return false;
+      }
+    },
+    [db]
+  );
+
+  const unpauseChannel = useCallback(
+    async (channelId: string): Promise<boolean> => {
+      try {
+        await db
+          .update(channels)
+          .set({ paused: 0 })
+          .where(eq(channels.id, channelId));
+        return true;
+      } catch (error) {
+        console.error("Error unpausing channel:", error);
+        return false;
+      }
+    },
+    [db]
+  );
+
+  return {
+    getChannels,
+    getActiveChannels,
+    addChannel,
+    removeChannel,
+    channelExists,
+    pauseChannel,
+    unpauseChannel,
+  };
 }

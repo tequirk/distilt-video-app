@@ -15,6 +15,13 @@
       "when": 1759007867167,
       "tag": "0001_smiling_moira_mactaggert",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1759012914579,
+      "tag": "0002_harsh_blur",
+      "breakpoints": true
     }
   ]
 }
