@@ -1,49 +1,27 @@
-import { Tabs } from "expo-router";
-import React from "react";
-
-import { HapticTab } from "@/components/haptic-tab";
-import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
+import { DynamicColorIOS } from "react-native";
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-      }}
+    <NativeTabs
+      tintColor={DynamicColorIOS({
+        dark: Colors.dark.tint,
+        light: Colors.light.tint,
+      })}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: "Videos",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="play.rectangle.fill" color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="channels"
-        options={{
-          title: "Channels",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="tv.fill" color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="about"
-        options={{
-          title: "About",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="info.circle.fill" color={color} />
-          ),
-        }}
-      />
-    </Tabs>
+      <NativeTabs.Trigger name="index">
+        <Label>Videos</Label>
+        <Icon sf="play.rectangle.fill" drawable="custom_android_drawable" />
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="channels">
+        <Label>Channels</Label>
+        <Icon sf="tv.fill" drawable="custom_android_drawable" />
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="about">
+        <Icon sf="info.circle.fill" drawable="custom_settings_drawable" />
+        <Label>About</Label>
+      </NativeTabs.Trigger>
+    </NativeTabs>
   );
 }

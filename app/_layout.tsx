@@ -1,20 +1,15 @@
+import { VideoRefreshProvider } from "@/data/videoRefreshContext";
 import {
   DarkTheme,
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
 import { Stack } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 
 import { MigrationStatus, useDb } from "@/data/useDb";
-import { VideoRefreshProvider } from "@/data/videoRefreshContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-
-export const unstable_settings = {
-  anchor: "(tabs)",
-};
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -28,26 +23,15 @@ export default function RootLayout() {
             value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
           >
             <Stack>
-              <Stack.Screen
-                name="(tabs)"
-                options={{ headerShown: false, headerTitle: "" }}
-              />
-              <Stack.Screen
-                name="about"
-                options={{
-                  headerShown: true,
-                  title: "About",
-                  headerTransparent: true,
-                  headerBlurEffect: "regular",
-                  headerLargeTitle: false,
-                }}
-              />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen
                 name="modal"
-                options={{ presentation: "modal", title: "Modal" }}
+                options={{
+                  presentation: "modal",
+                  headerShown: false,
+                }}
               />
             </Stack>
-            <StatusBar style="auto" />
           </ThemeProvider>
         </VideoRefreshProvider>
       </MigrationStatus>
