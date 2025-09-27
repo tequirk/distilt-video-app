@@ -98,6 +98,7 @@ const FilterButton = React.memo(
         styles.filterButton,
         {
           backgroundColor: isSelected ? tintColor : cardBackgroundColor,
+          overflow: "hidden",
         },
       ]}
       glassEffectStyle="regular"
