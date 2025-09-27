@@ -8,7 +8,7 @@ import { fetchChannelVideos } from "./youtubeService";
  */
 export function useVideoSync() {
   const { upsertVideos, getLatestVideoDateForChannel } = useVideosRepository();
-  const { getChannels } = useChannelsRepository();
+  const { getActiveChannels } = useChannelsRepository();
 
   /**
    * Sync videos for a specific channel (incremental)
@@ -69,17 +69,17 @@ export function useVideoSync() {
     byChannel: { [channelId: string]: number };
   }> => {
     try {
-      console.log("Starting sync for all channels...");
+      console.log("Starting sync for all active channels...");
 
-      // Get all channels from database
-      const channels = await getChannels();
+      // Get all active channels from database (excluding paused ones)
+      const channels = await getActiveChannels();
 
       if (channels.length === 0) {
-        console.log("No channels found in database");
+        console.log("No active channels found in database");
         return { total: 0, byChannel: {} };
       }
 
-      console.log(`Syncing ${channels.length} channels...`);
+      console.log(`Syncing ${channels.length} active channels...`);
 
       // Sync each channel in parallel
       const syncPromises = channels.map(async (channel) => {
@@ -99,14 +99,14 @@ export function useVideoSync() {
       });
 
       console.log(
-        `Sync complete: ${total} new videos across ${channels.length} channels`
+        `Sync complete: ${total} new videos across ${channels.length} active channels`
       );
       return { total, byChannel };
     } catch (error) {
       console.error("Error syncing all channels:", error);
       return { total: 0, byChannel: {} };
     }
-  }, [getChannels, syncChannelVideos]);
+  }, [getActiveChannels, syncChannelVideos]);
 
   /**
    * Force full resync (ignores latest dates, fetches all available videos)
@@ -115,7 +115,7 @@ export function useVideoSync() {
     try {
       console.log("Starting force full sync...");
 
-      const channels = await getChannels();
+      const channels = await getActiveChannels();
       let totalVideos = 0;
 
       for (const channel of channels) {
@@ -137,7 +137,7 @@ export function useVideoSync() {
       console.error("Error in force full sync:", error);
       return 0;
     }
-  }, [getChannels, upsertVideos]);
+  }, [getActiveChannels, upsertVideos]);
 
   return {
     syncChannelVideos,

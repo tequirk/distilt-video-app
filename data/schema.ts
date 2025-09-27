@@ -11,6 +11,7 @@ import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 export const channels = sqliteTable("channels", {
   id: text("id").primaryKey(),
   title: text("title").notNull(),
+  paused: integer("paused").notNull().default(0), // 0 = active, 1 = paused
 });
 
 /**

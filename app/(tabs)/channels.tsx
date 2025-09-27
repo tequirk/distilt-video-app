@@ -23,6 +23,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useVideoRefresh } from "@/contexts/videoRefreshContext";
 import { channels, Channels, videos } from "@/data/schema";
+import { useChannelsRepository } from "@/data/useChannelsRepository";
 import { useDb } from "@/data/useDb";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import {
@@ -33,33 +34,51 @@ import {
 import { eq } from "drizzle-orm";
 import { GlassStyle, GlassView } from "expo-glass-effect";
 
-// Right action function for swipeable delete
+// Right action function for swipeable delete and pause/unpause
 function RightAction(
   prog: SharedValue<number>,
   drag: SharedValue<number>,
   onDelete: () => void,
+  onTogglePause: () => void,
+  isPaused: boolean,
   backgroundColor: string,
   glassEffectStyle: GlassStyle
 ) {
   const styleAnimation = useAnimatedStyle(() => {
-    // Create a smooth animation that keeps the delete area visible
-    // but doesn't allow the content to overswipe too much
+    // Create a smooth animation that keeps the action area visible
+    // Account for two 60px buttons + margins (8px between + 8px margin)
+    // Total: 60 + 8 + 60 + 8 = 136px
     const translateX = Math.min(0, Math.max(drag.value, +80));
 
     return {
       transform: [{ translateX }],
-      // Optional: Add a subtle scale effect when fully revealed
       opacity: prog.value,
     };
   });
 
   return (
-    <Reanimated.View style={[styleAnimation]}>
+    <Reanimated.View
+      style={[styleAnimation, { flexDirection: "row", alignItems: "center" }]}
+    >
+      {/* Pause/Unpause button */}
       <GlassView
         glassEffectStyle={glassEffectStyle}
-        style={[styles.deleteButton, styles.rightAction, { backgroundColor }]}
+        style={[styles.rightAction]}
       >
-        <TouchableOpacity onPress={onDelete}>
+        <TouchableOpacity style={styles.actionButton} onPress={onTogglePause}>
+          <Ionicons
+            name={isPaused ? "play" : "pause"}
+            size={20}
+            color="#FFFFFF"
+          />
+        </TouchableOpacity>
+      </GlassView>
+      {/* Delete button */}
+      <GlassView
+        glassEffectStyle={glassEffectStyle}
+        style={[styles.rightAction, { backgroundColor }]}
+      >
+        <TouchableOpacity style={styles.actionButton} onPress={onDelete}>
           <Ionicons name="trash" size={20} color="#FFFFFF" />
         </TouchableOpacity>
       </GlassView>
@@ -72,6 +91,7 @@ const SwipeableChannelItem = ({
   channel,
   onRemove,
   onEdit,
+  onTogglePause,
   textColor,
   secondaryTextColor,
   cardBackgroundColor,
@@ -83,6 +103,7 @@ const SwipeableChannelItem = ({
   channel: Channels;
   onRemove: (channelId: string) => void;
   onEdit: (channel: Channels) => void;
+  onTogglePause: (channel: Channels) => void;
   textColor: string;
   secondaryTextColor: string;
   cardBackgroundColor: string;
@@ -106,7 +127,16 @@ const SwipeableChannelItem = ({
     }, 150);
   };
 
-  // Create a closure that captures the handleDeletePress function
+  const handleTogglePausePress = () => {
+    // Close this specific swipe first
+    swipeableRef.current?.close();
+    // Add a small delay to let the close animation complete
+    setTimeout(() => {
+      onTogglePause(channel);
+    }, 150);
+  };
+
+  // Create a closure that captures the handler functions
   const renderRightActions = (
     prog: SharedValue<number>,
     drag: SharedValue<number>
@@ -115,17 +145,21 @@ const SwipeableChannelItem = ({
       prog,
       drag,
       handleDeletePress,
+      handleTogglePausePress,
+      Boolean(channel.paused),
       buttonColor,
       glassEffectStyle
     );
   };
+
+  const isPaused = Boolean(channel.paused);
 
   return (
     <View style={styles.swipeContainer}>
       <ReanimatedSwipeable
         ref={swipeableRef}
         renderRightActions={renderRightActions}
-        rightThreshold={40}
+        rightThreshold={80}
         overshootRight={false}
         onSwipeableOpen={() => {
           // This could be used to close other swipes if needed
@@ -140,13 +174,19 @@ const SwipeableChannelItem = ({
             {
               backgroundColor: "transparent",
               borderBottomColor: borderColor,
+              opacity: isPaused ? 0.6 : 1.0,
             },
           ]}
           activeOpacity={0.7}
           onPress={() => onEdit(channel)}
         >
           <View style={styles.channelInfo}>
-            <Text style={[styles.channelTitle, { color: textColor }]}>
+            <Text
+              style={[
+                styles.channelTitle,
+                { color: isPaused ? secondaryTextColor : textColor },
+              ]}
+            >
               {channel.title}
             </Text>
           </View>
@@ -170,6 +210,7 @@ export default function ChannelsScreen() {
 
   const { db } = useDb();
   const { triggerVideoRefresh } = useVideoRefresh();
+  const { pauseChannel, unpauseChannel } = useChannelsRepository();
   const insets = useSafeAreaInsets();
 
   // Animation values
@@ -353,6 +394,33 @@ export default function ChannelsScreen() {
 
   const handleSwipeableRef = (id: string, ref: SwipeableMethods | null) => {
     swipeableRefs.current[id] = ref;
+  };
+
+  const handleTogglePause = async (channel: Channels) => {
+    try {
+      setLoading(true);
+      const isPaused = Boolean(channel.paused);
+
+      const success = isPaused
+        ? await unpauseChannel(channel.id)
+        : await pauseChannel(channel.id);
+
+      if (success) {
+        const action = isPaused ? "resumed" : "paused";
+        Alert.alert("Success", `Channel ${action}: ${channel.title}`);
+        await loadChannels();
+        // Trigger video refresh so the videos tab updates
+        triggerVideoRefresh();
+      } else {
+        const action = isPaused ? "resume" : "pause";
+        Alert.alert("Error", `Failed to ${action} channel`);
+      }
+    } catch (error) {
+      console.error("Error toggling channel pause state:", error);
+      Alert.alert("Error", "Failed to update channel");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRemoveChannel = async (channelId: string) => {
@@ -566,6 +634,7 @@ export default function ChannelsScreen() {
                   channel={channel}
                   onRemove={handleRemoveChannel}
                   onEdit={handleEditChannel}
+                  onTogglePause={handleTogglePause}
                   textColor={textColor}
                   secondaryTextColor={secondaryTextColor}
                   cardBackgroundColor={cardBackgroundColor}
@@ -680,6 +749,11 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     lineHeight: 22,
   },
+  pausedLabel: {
+    fontSize: 13,
+    fontStyle: "italic",
+    marginTop: 2,
+  },
   emptySection: {
     // Empty section when no channels, takes minimal space
     height: 1,
@@ -748,6 +822,12 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     height: 38, // Slightly smaller than channel item height for better visual balance
     alignSelf: "center", // Vertically center within the swipe area
+  },
+  actionButton: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
   },
   deleteButton: {
     width: "100%",

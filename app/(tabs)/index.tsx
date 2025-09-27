@@ -283,7 +283,7 @@ export default function HomeScreen() {
   const [showUnwatchedOnly, setShowUnwatchedOnly] = useState<boolean>(true);
   const [showScrollToTop, setShowScrollToTop] = useState(false);
   const { getVideos, refreshVideos } = useVideos();
-  const { getChannels } = useChannelsRepository();
+  const { getActiveChannels } = useChannelsRepository();
   const { markVideoAsWatched, markVideoAsUnwatched } = useVideosRepository();
   const { shouldRefresh, resetRefreshTrigger } = useVideoRefresh();
   const { db } = useDb();
@@ -489,6 +489,15 @@ export default function HomeScreen() {
   const filteredVideoList = useMemo(() => {
     let filtered = videoList;
 
+    // First, filter out videos from paused channels
+    // Only show videos from channels that are in the active channel list
+    const activeChannelTitles = new Set(
+      channelList.map((channel) => channel.title)
+    );
+    filtered = filtered.filter((video) =>
+      activeChannelTitles.has(video.channelTitle)
+    );
+
     // Apply channel filter
     if (selectedChannel !== "All") {
       filtered = filtered.filter(
@@ -502,7 +511,7 @@ export default function HomeScreen() {
     }
 
     return filtered;
-  }, [videoList, selectedChannel, showUnwatchedOnly]);
+  }, [videoList, selectedChannel, showUnwatchedOnly, channelList]);
 
   // Load videos on component mount
   useEffect(() => {
@@ -534,7 +543,7 @@ export default function HomeScreen() {
   useEffect(() => {
     const loadChannels = async () => {
       try {
-        const channels = await getChannels();
+        const channels = await getActiveChannels();
         // Sort channels alphabetically by title
         const sortedChannels = channels.sort((a, b) =>
           a.title.localeCompare(b.title)
@@ -556,10 +565,10 @@ export default function HomeScreen() {
       const refreshFromChannelChange = async () => {
         setRefreshing(true);
         try {
-          // Refresh both videos and channels
+          // Refresh both videos and channels (only active ones)
           const [videos, channels] = await Promise.all([
             refreshVideos(),
-            getChannels(),
+            getActiveChannels(),
           ]);
 
           const sortedVideos = videos.sort(
@@ -583,7 +592,7 @@ export default function HomeScreen() {
 
       refreshFromChannelChange();
     }
-  }, [shouldRefresh, refreshVideos, resetRefreshTrigger, getChannels]);
+  }, [shouldRefresh, refreshVideos, resetRefreshTrigger, getActiveChannels]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

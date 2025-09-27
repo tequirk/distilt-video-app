@@ -1,0 +1,1 @@
+ALTER TABLE `channels` ADD `paused` integer DEFAULT 0 NOT NULL;
