@@ -563,7 +563,7 @@ export default function ChannelsScreen() {
       {/* Empty State Message - positioned near FAB */}
       {channelsList.length === 0 && (
         <ThemedView
-          style={[styles.emptyStateContainer, { bottom: insets.bottom + 50 }]}
+          style={[styles.emptyStateContainer, { bottom: insets.bottom + 110 }]}
         >
           <ThemedView
             style={[
@@ -586,7 +586,7 @@ export default function ChannelsScreen() {
           styles.fab,
           {
             backgroundColor: buttonColor,
-            bottom: insets.bottom,
+            bottom: insets.bottom + 60,
             right: 36,
           },
         ]}

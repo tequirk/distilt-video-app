@@ -532,7 +532,7 @@ export default function HomeScreen() {
             styles.scrollToTopFab,
             {
               backgroundColor: tintColor,
-              bottom: insets.bottom,
+              bottom: insets.bottom + 60,
             },
           ]}
           onPress={scrollToTop}
