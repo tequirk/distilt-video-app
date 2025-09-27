@@ -31,6 +31,7 @@ import {
   validateChannelId,
 } from "@/services/youtube-rss";
 import { eq } from "drizzle-orm";
+import { GlassView } from "expo-glass-effect";
 
 // Right action function for swipeable delete
 function RightAction(
@@ -51,10 +52,15 @@ function RightAction(
   });
 
   return (
-    <Reanimated.View style={[styles.rightAction, styleAnimation]}>
-      <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
-        <Ionicons name="trash" size={20} color="#FFFFFF" />
-      </TouchableOpacity>
+    <Reanimated.View style={[styleAnimation]}>
+      <GlassView
+        glassEffectStyle="regular"
+        style={[styles.deleteButton, styles.rightAction]}
+      >
+        <TouchableOpacity onPress={onDelete}>
+          <Ionicons name="trash" size={20} color="#FFFFFF" />
+        </TouchableOpacity>
+      </GlassView>
     </Reanimated.View>
   );
 }
@@ -581,7 +587,7 @@ export default function ChannelsScreen() {
       )}
 
       {/* Floating Action Button */}
-      <TouchableOpacity
+      <GlassView
         style={[
           styles.fab,
           {
@@ -590,11 +596,12 @@ export default function ChannelsScreen() {
             right: 36,
           },
         ]}
-        onPress={handleAddChannelPrompt}
-        disabled={loading}
+        glassEffectStyle="regular"
       >
-        <Ionicons name="add" size={24} color="white" />
-      </TouchableOpacity>
+        <TouchableOpacity onPress={handleAddChannelPrompt} disabled={loading}>
+          <Ionicons name="add" size={24} color="white" />
+        </TouchableOpacity>
+      </GlassView>
     </ThemedView>
   );
 }

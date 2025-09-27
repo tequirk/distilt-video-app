@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
+import { GlassView } from "expo-glass-effect";
 import { router } from "expo-router";
 import React, {
   useCallback,
@@ -92,26 +93,28 @@ const FilterButton = React.memo(
     textColor: string;
     cardBackgroundColor: string;
   }) => (
-    <Pressable
-      onPress={onPress}
+    <GlassView
       style={[
         styles.filterButton,
         {
           backgroundColor: isSelected ? tintColor : cardBackgroundColor,
         },
       ]}
+      glassEffectStyle="regular"
     >
-      <ThemedText
-        style={[
-          styles.filterText,
-          {
-            color: isSelected ? "#FFFFFF" : textColor,
-          },
-        ]}
-      >
-        {title}
-      </ThemedText>
-    </Pressable>
+      <Pressable onPress={onPress}>
+        <ThemedText
+          style={[
+            styles.filterText,
+            {
+              color: isSelected ? "#FFFFFF" : textColor,
+            },
+          ]}
+        >
+          {title}
+        </ThemedText>
+      </Pressable>
+    </GlassView>
   )
 );
 
@@ -527,7 +530,7 @@ export default function HomeScreen() {
 
       {/* Scroll to Top Floating Action Button */}
       {showScrollToTop && (
-        <TouchableOpacity
+        <GlassView
           style={[
             styles.scrollToTopFab,
             {
@@ -535,11 +538,12 @@ export default function HomeScreen() {
               bottom: insets.bottom + 60,
             },
           ]}
-          onPress={scrollToTop}
-          activeOpacity={0.8}
+          glassEffectStyle="regular"
         >
-          <Ionicons name="chevron-up" size={24} color="white" />
-        </TouchableOpacity>
+          <TouchableOpacity onPress={scrollToTop} activeOpacity={0.8}>
+            <Ionicons name="chevron-up" size={24} color="white" />
+          </TouchableOpacity>
+        </GlassView>
       )}
     </ThemedView>
   );
