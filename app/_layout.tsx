@@ -1,20 +1,15 @@
+import { VideoRefreshProvider } from "@/data/videoRefreshContext";
 import {
   DarkTheme,
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
-import { Stack } from "expo-router";
-import { StatusBar } from "expo-status-bar";
+import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 
 import { MigrationStatus, useDb } from "@/data/useDb";
-import { VideoRefreshProvider } from "@/data/videoRefreshContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-
-export const unstable_settings = {
-  anchor: "(tabs)",
-};
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -27,27 +22,20 @@ export default function RootLayout() {
           <ThemeProvider
             value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
           >
-            <Stack>
-              <Stack.Screen
-                name="(tabs)"
-                options={{ headerShown: false, headerTitle: "" }}
-              />
-              <Stack.Screen
-                name="about"
-                options={{
-                  headerShown: true,
-                  title: "About",
-                  headerTransparent: true,
-                  headerBlurEffect: "regular",
-                  headerLargeTitle: false,
-                }}
-              />
-              <Stack.Screen
-                name="modal"
-                options={{ presentation: "modal", title: "Modal" }}
-              />
-            </Stack>
-            <StatusBar style="auto" />
+            <NativeTabs>
+              <NativeTabs.Trigger name="index">
+                <Label>Videos</Label>
+                <Icon sf="house.fill" drawable="custom_android_drawable" />
+              </NativeTabs.Trigger>
+              <NativeTabs.Trigger name="channels">
+                <Label>Channels</Label>
+                <Icon sf="laser.burst" drawable="custom_android_drawable" />
+              </NativeTabs.Trigger>
+              <NativeTabs.Trigger name="about">
+                <Icon sf="gear" drawable="custom_settings_drawable" />
+                <Label>About</Label>
+              </NativeTabs.Trigger>
+            </NativeTabs>
           </ThemeProvider>
         </VideoRefreshProvider>
       </MigrationStatus>
