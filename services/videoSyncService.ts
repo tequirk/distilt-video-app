@@ -1,14 +1,14 @@
 import { useCallback } from "react";
-import { fetchChannelVideos } from "../services/youtube-rss";
-import { useChannels } from "./channelService";
-import { useVideoDatabase } from "./videoDatabase";
+import { useChannelsRepository } from "../data/useChannelsRepository";
+import { useVideosRepository } from "../data/useVideosRepository";
+import { fetchChannelVideos } from "./youtubeService";
 
 /**
  * Hook for syncing videos from RSS feeds to database
  */
 export function useVideoSync() {
-  const { upsertVideos, getLatestVideoDateForChannel } = useVideoDatabase();
-  const { getChannels } = useChannels();
+  const { upsertVideos, getLatestVideoDateForChannel } = useVideosRepository();
+  const { getChannels } = useChannelsRepository();
 
   /**
    * Sync videos for a specific channel (incremental)

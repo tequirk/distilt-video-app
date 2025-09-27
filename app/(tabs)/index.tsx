@@ -23,13 +23,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { useChannels } from "@/data/channelService";
+import { useVideoRefresh } from "@/contexts/videoRefreshContext";
 import { channels } from "@/data/schema";
+import { useChannelsRepository } from "@/data/useChannelsRepository";
 import { useDb } from "@/data/useDb";
-import { useVideoRefresh } from "@/data/videoRefreshContext";
-import { useVideos } from "@/data/videoService";
 import { useThemeColor } from "@/hooks/use-theme-color";
-import { YouTubeVideo } from "@/services/youtube-rss";
+import { useVideos } from "@/services/videoService";
+import { YouTubeVideo } from "@/services/youtubeService";
 
 // Memoized video item component for performance
 const VideoItem = React.memo(
@@ -193,7 +193,7 @@ export default function HomeScreen() {
   const [selectedChannel, setSelectedChannel] = useState<string>("All");
   const [showScrollToTop, setShowScrollToTop] = useState(false);
   const { getVideos, refreshVideos } = useVideos();
-  const { getChannels } = useChannels();
+  const { getChannels } = useChannelsRepository();
   const { shouldRefresh, resetRefreshTrigger } = useVideoRefresh();
   const { db } = useDb();
 

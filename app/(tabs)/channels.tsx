@@ -21,15 +21,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { useVideoRefresh } from "@/contexts/videoRefreshContext";
 import { channels, Channels, videos } from "@/data/schema";
 import { useDb } from "@/data/useDb";
-import { useVideoRefresh } from "@/data/videoRefreshContext";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import {
   extractChannelId,
   fetchChannelInfo,
   validateChannelId,
-} from "@/services/youtube-rss";
+} from "@/services/youtubeService";
 import { eq } from "drizzle-orm";
 import { GlassView } from "expo-glass-effect";
 

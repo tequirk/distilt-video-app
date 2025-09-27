@@ -1,4 +1,4 @@
-import { VideoRefreshProvider } from "@/data/videoRefreshContext";
+import { VideoRefreshProvider } from "@/contexts/videoRefreshContext";
 import {
   DarkTheme,
   DefaultTheme,

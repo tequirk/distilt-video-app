@@ -6,7 +6,7 @@ import { useDb } from "./useDb";
 /**
  * Hook to get all channels from the database
  */
-export function useChannels() {
+export function useChannelsRepository() {
   const { db } = useDb();
 
   const getChannels = useCallback(async (): Promise<Channels[]> => {
@@ -64,26 +64,4 @@ export function useChannels() {
   );
 
   return { getChannels, addChannel, removeChannel, channelExists };
-}
-
-/**
- * Hook to get videos for a specific channel
- */
-export function useChannelVideos(channelId: string) {
-  const { db } = useDb();
-
-  const getChannelInfo = useCallback(async (): Promise<Channels | null> => {
-    try {
-      const result = await db
-        .select()
-        .from(channels)
-        .where(eq(channels.id, channelId));
-      return result[0] || null;
-    } catch (error) {
-      console.error(`Error fetching channel ${channelId}:`, error);
-      return null;
-    }
-  }, [db, channelId]);
-
-  return { getChannelInfo };
 }

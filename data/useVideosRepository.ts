@@ -1,13 +1,13 @@
 import { desc, eq, inArray, sql } from "drizzle-orm";
 import { useCallback } from "react";
-import { YouTubeVideo } from "../services/youtube-rss";
+import { YouTubeVideo } from "../services/youtubeService";
 import { videos } from "./schema";
 import { useDb } from "./useDb";
 
 /**
  * Hook for video database operations
  */
-export function useVideoDatabase() {
+export function useVideosRepository() {
   const { db } = useDb();
 
   /**

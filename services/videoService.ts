@@ -1,13 +1,13 @@
 import { useCallback } from "react";
-import { YouTubeVideo } from "../services/youtube-rss";
-import { useVideoDatabase } from "./videoDatabase";
-import { useVideoSync } from "./videoSync";
+import { useVideosRepository } from "../data/useVideosRepository";
+import { useVideoSync } from "./videoSyncService";
+import { YouTubeVideo } from "./youtubeService";
 
 /**
  * Hook to get videos from database with background sync
  */
 export function useVideos() {
-  const { getAllVideos } = useVideoDatabase();
+  const { getAllVideos } = useVideosRepository();
   const { syncAllChannels } = useVideoSync();
 
   const getVideos = useCallback(async (): Promise<YouTubeVideo[]> => {
