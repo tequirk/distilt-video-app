@@ -531,14 +531,13 @@ export default function HomeScreen() {
           style={[
             styles.scrollToTopFab,
             {
-              backgroundColor: tintColor,
               bottom: insets.bottom + 60,
             },
           ]}
           glassEffectStyle="regular"
         >
           <TouchableOpacity onPress={scrollToTop} activeOpacity={0.8}>
-            <Ionicons name="chevron-up" size={24} color="white" />
+            <Ionicons name="chevron-up" size={24} color={textColor} />
           </TouchableOpacity>
         </GlassView>
       )}

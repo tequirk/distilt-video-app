@@ -589,7 +589,6 @@ export default function ChannelsScreen() {
         style={[
           styles.fab,
           {
-            backgroundColor: buttonColor,
             bottom: insets.bottom + 60,
             right: 36,
           },
@@ -597,7 +596,7 @@ export default function ChannelsScreen() {
         glassEffectStyle="regular"
       >
         <TouchableOpacity onPress={handleAddChannelPrompt} disabled={loading}>
-          <Ionicons name="add" size={24} color="white" />
+          <Ionicons name="add" size={24} color={textColor} />
         </TouchableOpacity>
       </GlassView>
     </ThemedView>
