@@ -177,10 +177,7 @@ export default function ChannelsScreen() {
     { light: "#e0e0e0", dark: "#3c3c43" },
     "text"
   );
-  const secondaryTextColor = useThemeColor(
-    { light: "#8e8e93", dark: "#8e8e93" },
-    "text"
-  );
+  const secondaryTextColor = useThemeColor({}, "icon");
   const buttonColor = useThemeColor({}, "tint");
 
   // Header animations
@@ -650,21 +647,6 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 80,
   },
-  card: {
-    borderRadius: 12,
-    overflow: "hidden",
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
   channelItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -682,14 +664,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "500",
     lineHeight: 22,
-  },
-  channelId: {
-    fontSize: 13,
-    lineHeight: 16,
-  },
-  separator: {
-    height: StyleSheet.hairlineWidth,
-    marginLeft: 16,
   },
   emptySection: {
     // Empty section when no channels, takes minimal space
@@ -726,12 +700,6 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     textAlign: "center",
   },
-  emptyText: {
-    fontSize: 16,
-    lineHeight: 22,
-    textAlign: "center",
-    padding: 24,
-  },
   fab: {
     position: "absolute",
     right: 20,
@@ -752,20 +720,10 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  fabText: {
-    fontSize: 24,
-    fontWeight: "300",
-    color: "white",
-  },
   // Swipe styles
   swipeContainer: {
     flex: 1,
     overflow: "hidden",
-  },
-  channelItemContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    height: 80,
   },
   rightAction: {
     width: 60,
