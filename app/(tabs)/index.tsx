@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { GlassView } from "expo-glass-effect";
+import { GlassStyle, GlassView } from "expo-glass-effect";
 import { router } from "expo-router";
 import React, {
   useCallback,
@@ -17,6 +17,7 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  useColorScheme,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -84,6 +85,7 @@ const FilterButton = React.memo(
     tintColor,
     textColor,
     cardBackgroundColor,
+    glassEffectStyle,
   }: {
     title: string;
     isSelected: boolean;
@@ -91,6 +93,7 @@ const FilterButton = React.memo(
     tintColor: string;
     textColor: string;
     cardBackgroundColor: string;
+    glassEffectStyle: GlassStyle;
   }) => (
     <GlassView
       style={[
@@ -100,7 +103,7 @@ const FilterButton = React.memo(
           overflow: "hidden",
         },
       ]}
-      glassEffectStyle="regular"
+      glassEffectStyle={glassEffectStyle}
     >
       <Pressable onPress={onPress}>
         <ThemedText
@@ -129,6 +132,7 @@ const ChannelFilterList = React.memo(
     tintColor,
     textColor,
     cardBackgroundColor,
+    glassEffectStyle,
   }: {
     channelList: { id: string; title: string }[];
     selectedChannel: string;
@@ -136,6 +140,7 @@ const ChannelFilterList = React.memo(
     tintColor: string;
     textColor: string;
     cardBackgroundColor: string;
+    glassEffectStyle: GlassStyle;
   }) => {
     if (channelList.length === 0) {
       return null; // Don't render anything if there are no channels
@@ -154,6 +159,7 @@ const ChannelFilterList = React.memo(
           tintColor={tintColor}
           textColor={textColor}
           cardBackgroundColor={cardBackgroundColor}
+          glassEffectStyle={glassEffectStyle}
         />
         {channelList.length > 0 &&
           channelList.map((channel) => (
@@ -165,6 +171,7 @@ const ChannelFilterList = React.memo(
               tintColor={tintColor}
               textColor={textColor}
               cardBackgroundColor={cardBackgroundColor}
+              glassEffectStyle={glassEffectStyle}
             />
           ))}
       </ScrollView>
@@ -262,6 +269,13 @@ export default function HomeScreen() {
   const onChannelSelect = useCallback((channel: string) => {
     setSelectedChannel(channel);
   }, []);
+
+  const [glassStyle, setGlassStyle] = useState<GlassStyle>("regular");
+  const colorScheme = useColorScheme();
+
+  useEffect(() => {
+    setGlassStyle((colorScheme === "dark" ? "regular" : "glass") as GlassStyle);
+  }, [colorScheme]);
 
   // Memoize the filtered video list
   const filteredVideoList = useMemo(() => {
@@ -492,6 +506,8 @@ export default function HomeScreen() {
               tintColor={tintColor}
               textColor={textColor}
               cardBackgroundColor={cardBackgroundColor}
+              // Use regular glass when dark mode
+              glassEffectStyle={glassStyle}
             />
           </Animated.View>
         }

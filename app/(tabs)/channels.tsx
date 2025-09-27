@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useColorScheme,
   View,
 } from "react-native";
 import ReanimatedSwipeable, {
@@ -30,14 +31,15 @@ import {
   validateChannelId,
 } from "@/services/youtubeService";
 import { eq } from "drizzle-orm";
-import { GlassView } from "expo-glass-effect";
+import { GlassStyle, GlassView } from "expo-glass-effect";
 
 // Right action function for swipeable delete
 function RightAction(
   prog: SharedValue<number>,
   drag: SharedValue<number>,
   onDelete: () => void,
-  backgroundColor: string
+  backgroundColor: string,
+  glassEffectStyle: GlassStyle
 ) {
   const styleAnimation = useAnimatedStyle(() => {
     // Create a smooth animation that keeps the delete area visible
@@ -54,7 +56,7 @@ function RightAction(
   return (
     <Reanimated.View style={[styleAnimation]}>
       <GlassView
-        glassEffectStyle="regular"
+        glassEffectStyle={glassEffectStyle}
         style={[styles.deleteButton, styles.rightAction, { backgroundColor }]}
       >
         <TouchableOpacity onPress={onDelete}>
@@ -75,6 +77,7 @@ const SwipeableChannelItem = ({
   cardBackgroundColor,
   borderColor,
   buttonColor,
+  glassEffectStyle,
   onSwipeableRef,
 }: {
   channel: Channels;
@@ -85,6 +88,7 @@ const SwipeableChannelItem = ({
   cardBackgroundColor: string;
   borderColor: string;
   buttonColor: string;
+  glassEffectStyle: GlassStyle;
   onSwipeableRef: (id: string, ref: SwipeableMethods | null) => void;
 }) => {
   const swipeableRef = useRef<SwipeableMethods>(null);
@@ -107,7 +111,13 @@ const SwipeableChannelItem = ({
     prog: SharedValue<number>,
     drag: SharedValue<number>
   ) => {
-    return RightAction(prog, drag, handleDeletePress, buttonColor);
+    return RightAction(
+      prog,
+      drag,
+      handleDeletePress,
+      buttonColor,
+      glassEffectStyle
+    );
   };
 
   return (
@@ -178,6 +188,13 @@ export default function ChannelsScreen() {
   );
   const secondaryTextColor = useThemeColor({}, "icon");
   const buttonColor = useThemeColor({}, "tint");
+
+  const [glassStyle, setGlassStyle] = useState<GlassStyle>("regular");
+  const colorScheme = useColorScheme();
+
+  useEffect(() => {
+    setGlassStyle((colorScheme === "dark" ? "regular" : "glass") as GlassStyle);
+  }, [colorScheme]);
 
   // Header animations
   const headerHeight = scrollY.interpolate({
@@ -554,6 +571,7 @@ export default function ChannelsScreen() {
                   cardBackgroundColor={cardBackgroundColor}
                   borderColor={borderColor}
                   buttonColor={buttonColor}
+                  glassEffectStyle={glassStyle}
                   onSwipeableRef={handleSwipeableRef}
                 />
               ))}
